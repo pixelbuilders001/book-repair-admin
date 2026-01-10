@@ -27,6 +27,11 @@ export const navItems = [
         icon: Users,
     },
     {
+        title: "Technician Stats",
+        href: "/technician-stats",
+        icon: Users,
+    },
+    {
         title: "Payments",
         href: "/payments",
         icon: CreditCard,

@@ -1,8 +1,7 @@
 "use client";
 
-import {
-    referrals
-} from "@/lib/mock-data";
+import { useEffect, useState } from "react";
+import { referrals } from "@/lib/mock-data";
 import {
     Card,
     CardContent,
@@ -28,7 +27,62 @@ import {
     Users
 } from "lucide-react";
 
+// Define the ReferralBooking type
+interface ReferralBooking {
+    id: string;
+    referrer_mobile: string;
+    referee_mobile: string;
+    referee_booking_id: string;
+    reward_amount: number | null;
+    reward_status: string | null;
+    created_at?: string | null;
+    earned_at?: string | null;
+    used_at?: string | null;
+}
+
 export default function ReferralsPage() {
+    const [referralBookings, setReferralBookings] = useState<ReferralBooking[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchReferralBookings() {
+            setLoading(true);
+            try {
+                const res = await fetch("https://upoafhtidiwsihwijwex.supabase.co/rest/v1/referral_bookings", {
+                    headers: {
+                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+                        'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                const data: ReferralBooking[] = await res.json();
+                setReferralBookings(data);
+            } catch {
+                setReferralBookings([]);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchReferralBookings();
+    }, []);
+
+    function formatDate(dateString?: string | null) {
+        if (!dateString) return "-";
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return "-";
+        return date.toLocaleString("en-IN", {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+        });
+    }
+
+    const totalReferralBookings = referralBookings.length;
+    const totalRewardsCredited = referralBookings.reduce((sum, ref) => sum + (ref.reward_amount ?? 0), 0);
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -50,18 +104,8 @@ export default function ReferralsPage() {
                         <TrendingUp className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">160</div>
-                        <p className="text-xs text-muted-foreground">12.5% of total bookings</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Active Referral Codes</CardTitle>
-                        <Copy className="h-4 w-4 text-primary" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">428</div>
-                        <p className="text-xs text-muted-foreground">+18 new this week</p>
+                        <div className="text-2xl font-bold">{totalReferralBookings}</div>
+                        <p className="text-xs text-muted-foreground">{totalReferralBookings > 0 ? `${((totalReferralBookings / 160) * 100).toFixed(1)}% of total bookings` : "No data"}</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -70,7 +114,7 @@ export default function ReferralsPage() {
                         <Gift className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">₹2,400</div>
+                        <div className="text-2xl font-bold">₹{totalRewardsCredited}</div>
                         <p className="text-xs text-muted-foreground">Paid into user wallets</p>
                     </CardContent>
                 </Card>
@@ -78,49 +122,55 @@ export default function ReferralsPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Referral Codes Performance</CardTitle>
+                    <CardTitle>Referral Bookings</CardTitle>
                     <CardDescription>
-                        High-performing codes and their impact on platform growth.
+                        All referral bookings and their reward status.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="pl-6">Code</TableHead>
-                                <TableHead>Owner / Mobile</TableHead>
-                                <TableHead className="text-center">Total Signups</TableHead>
-                                <TableHead className="text-center">Bookings</TableHead>
-                                <TableHead className="text-right">Rewards Earned</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right pr-6"></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {referrals.map((ref) => (
-                                <TableRow key={ref.code}>
-                                    <TableCell className="pl-6 font-mono font-bold text-primary">{ref.code}</TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium">{ref.ownerName}</span>
-                                            <span className="text-xs text-muted-foreground">{ref.owner}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-center">{ref.usageCount}</TableCell>
-                                    <TableCell className="text-center">{ref.bookingsCount}</TableCell>
-                                    <TableCell className="text-right font-medium">{ref.totalRewards}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={ref.status === "Active" ? "default" : "secondary"}>
-                                            {ref.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right pr-6">
-                                        <Button variant="ghost" size="sm">Details</Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                    {loading ? (
+                        <div className="flex items-center justify-center h-32">Loading...</div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="pl-6">ID</TableHead>
+                                        <TableHead>Referrer Mobile</TableHead>
+                                        <TableHead>Referee Mobile</TableHead>
+                                        <TableHead>Referee Booking ID</TableHead>
+                                        <TableHead>Reward Amount</TableHead>
+                                        <TableHead>Reward Status</TableHead>
+                                        <TableHead>Created At</TableHead>
+                                        <TableHead>Earned At</TableHead>
+                                        <TableHead>Used At</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {referralBookings.map((ref) => (
+                                        <TableRow key={ref.id}>
+                                            <TableCell className="pl-6 font-mono text-xs">{ref.id}</TableCell>
+                                            <TableCell>{ref.referrer_mobile}</TableCell>
+                                            <TableCell>{ref.referee_mobile}</TableCell>
+                                            <TableCell className="font-mono text-xs">{ref.referee_booking_id}</TableCell>
+                                            <TableCell>₹{ref.reward_amount ?? 0}</TableCell>
+                                            <TableCell>{ref.reward_status ?? "pending"}</TableCell>
+                                            <TableCell>{formatDate(ref.created_at)}</TableCell>
+                                            <TableCell>{formatDate(ref.earned_at)}</TableCell>
+                                            <TableCell>{formatDate(ref.used_at)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {referralBookings.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={9} className="h-24 text-center">
+                                                No referral bookings found.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

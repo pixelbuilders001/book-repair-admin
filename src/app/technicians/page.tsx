@@ -1,27 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import {
-    technicians,
-    techStatuses,
-    cities
-} from "@/lib/mock-data";
-import { Technician } from "@/lib/types";
+import React, { useEffect, useState, useRef } from "react";
+import Image from "next/image";
 import {
     Card,
-    CardContent,
-    CardHeader,
-    CardTitle
+    CardContent
 } from "@/components/ui/card";
-import { TechVerification } from "@/components/technicians/tech-verification";
-import { Input } from "@/components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@/components/ui/select";
 import {
     Table,
     TableBody,
@@ -30,41 +14,73 @@ import {
     TableHeader,
     TableRow
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-    Search,
-    MoreVertical,
-    UserCheck,
-    UserX,
-    Info,
-    MapPin,
-    Star
-} from "lucide-react";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+interface TechnicianApi {
+    id: string;
+    full_name: string;
+    mobile: string;
+    current_address: string;
+    aadhaar_number: string;
+    aadhaar_front_url?: string | null;
+    aadhaar_back_url?: string | null;
+    selfie_url?: string | null;
+    primary_skill: string;
+    total_experience: number;
+    verification_status?: string;
+    is_active?: boolean;
+    created_at?: string;
+    updated_at?: string;
+    login_code?: string;
+    is_verified?: boolean;
+    code_active?: boolean;
+    remark?: string | null;
+    other_skills?: string[] | null;
+    service_area?: string | null;
+    pincode?: string | null;
+}
+
+// Helper function to format date
+function formatDate(dateString?: string | null) {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "-";
+    return date.toLocaleString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+    });
+}
 
 export default function TechniciansPage() {
-    const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
-    const [cityFilter, setCityFilter] = useState("all");
-    const [selectedTech, setSelectedTech] = useState<Technician | null>(null);
-    const [isVerifyOpen, setIsVerifyOpen] = useState(false);
+    const [technicians, setTechnicians] = useState<TechnicianApi[]>([]);
+    const [imageModal, setImageModal] = useState<{ url: string; label: string } | null>(null);
+    const [verifyModal, setVerifyModal] = useState<{ tech: TechnicianApi; status: string; remark: string } | null>(null);
+    const remarkInputRef = useRef<HTMLInputElement>(null);
 
-    const filteredTechs = technicians.filter((tech) => {
-        const matchesSearch =
-            tech.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            tech.id.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === "all" || tech.status === statusFilter;
-        const matchesCity = cityFilter === "all" || tech.city === cityFilter;
-
-        return matchesSearch && matchesStatus && matchesCity;
-    });
+    useEffect(() => {
+        const commonHeaders = {
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+            'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+        };
+        async function fetchData() {
+            try {
+                const res = await fetch("https://upoafhtidiwsihwijwex.supabase.co/rest/v1/technicians", {
+                    headers: commonHeaders,
+                });
+                const data: TechnicianApi[] = await res.json();
+                setTechnicians(data);
+            } catch {
+                console.error("Failed to fetch technicians");
+            }
+        }
+        fetchData();
+    }, []);
 
     return (
         <div className="space-y-6">
@@ -80,167 +96,157 @@ export default function TechniciansPage() {
                     <Button>Add Technician</Button>
                 </div>
             </div>
-
             <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg font-medium">Filters</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid gap-4 md:grid-cols-4">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Search name or ID..."
-                                className="pl-10"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Statuses</SelectItem>
-                                {techStatuses.map((s) => (
-                                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="pl-6">ID</TableHead>
+                                    <TableHead>Full Name</TableHead>
+                                    <TableHead>Mobile</TableHead>
+                                    <TableHead>Current Address</TableHead>
+                                    <TableHead>Aadhaar Number</TableHead>
+                                    <TableHead>Aadhaar Front</TableHead>
+                                    <TableHead>Aadhaar Back</TableHead>
+                                    <TableHead>Selfie</TableHead>
+                                    <TableHead>Primary Skill</TableHead>
+                                    <TableHead>Other Skills</TableHead>
+                                    <TableHead>Total Experience</TableHead>
+                                    <TableHead>Verification Status</TableHead>
+                                    <TableHead>Is Active</TableHead>
+                                    <TableHead>Is Verified</TableHead>
+                                    <TableHead>Code Active</TableHead>
+                                    <TableHead>Login Code</TableHead>
+                                    <TableHead>Remark</TableHead>
+                                    <TableHead>Service Area</TableHead>
+                                    <TableHead>Pincode</TableHead>
+                                    <TableHead>Created At</TableHead>
+                                    <TableHead>Updated At</TableHead>
+                                    <TableHead>Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {technicians.map((tech) => (
+                                    <TableRow key={tech.id}>
+                                        <TableCell className="pl-6">{tech.id}</TableCell>
+                                        <TableCell>{tech.full_name}</TableCell>
+                                        <TableCell>{tech.mobile}</TableCell>
+                                        <TableCell>{tech.current_address}</TableCell>
+                                        <TableCell>{tech.aadhaar_number}</TableCell>
+                                        <TableCell>
+                                            {tech.aadhaar_front_url ? (
+                                                <Button size="sm" variant="outline" onClick={() => setImageModal({ url: tech.aadhaar_front_url!, label: "Aadhaar Front" })}>Show</Button>
+                                            ) : "-"}
+                                        </TableCell>
+                                        <TableCell>
+                                            {tech.aadhaar_back_url ? (
+                                                <Button size="sm" variant="outline" onClick={() => setImageModal({ url: tech.aadhaar_back_url!, label: "Aadhaar Back" })}>Show</Button>
+                                            ) : "-"}
+                                        </TableCell>
+                                        <TableCell>
+                                            {tech.selfie_url ? (
+                                                <Button size="sm" variant="outline" onClick={() => setImageModal({ url: tech.selfie_url!, label: "Selfie" })}>Show</Button>
+                                            ) : "-"}
+                                        </TableCell>
+                                        <TableCell>{tech.primary_skill}</TableCell>
+                                        <TableCell>{tech.other_skills ? tech.other_skills.join(", ") : "-"}</TableCell>
+                                        <TableCell>{tech.total_experience}</TableCell>
+                                        <TableCell>{tech.verification_status ?? "pending"}</TableCell>
+                                        <TableCell>{tech.is_active ? "Yes" : "No"}</TableCell>
+                                        <TableCell>{tech.is_verified ? "Yes" : "No"}</TableCell>
+                                        <TableCell>{tech.code_active ? "Yes" : "No"}</TableCell>
+                                        <TableCell>{tech.login_code ?? "-"}</TableCell>
+                                        <TableCell>{tech.remark ?? "-"}</TableCell>
+                                        <TableCell>{tech.service_area ?? "-"}</TableCell>
+                                        <TableCell>{tech.pincode ?? "-"}</TableCell>
+                                        <TableCell>{formatDate(tech.created_at)}</TableCell>
+                                        <TableCell>{formatDate(tech.updated_at)}</TableCell>
+                                        <TableCell>
+                                            <div className="flex gap-2 items-center">
+                                                <select
+                                                    className="border rounded px-2 py-1 text-sm"
+                                                    value={tech.is_active ? "active" : "inactive"}
+                                                    onChange={e => {
+                                                        // For now, just update UI state locally. Replace with API call if needed.
+                                                        setTechnicians(prev => prev.map(t => t.id === tech.id ? { ...t, is_active: e.target.value === "active" } : t));
+                                                    }}
+                                                >
+                                                    <option value="active">Active</option>
+                                                    <option value="inactive">Inactive</option>
+                                                </select>
+                                                <Button size="sm" variant="default" onClick={() => setVerifyModal({ tech, status: tech.verification_status ?? "pending", remark: tech.remark ?? "" })}>
+                                                    Verify
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
                                 ))}
-                            </SelectContent>
-                        </Select>
-                        <Select value={cityFilter} onValueChange={setCityFilter}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="City" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Cities</SelectItem>
-                                {cities.map((c) => (
-                                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Button variant="ghost" onClick={() => {
-                            setSearchTerm("");
-                            setStatusFilter("all");
-                            setCityFilter("all");
-                        }}>
-                            Reset Filters
-                        </Button>
+                            </TableBody>
+                        </Table>
                     </div>
                 </CardContent>
             </Card>
-
-            <Card>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="pl-6">Technician</TableHead>
-                                <TableHead>Skills</TableHead>
-                                <TableHead>City</TableHead>
-                                <TableHead>Rating</TableHead>
-                                <TableHead>Jobs Done</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right pr-6"></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredTechs.map((tech) => (
-                                <TableRow key={tech.id}>
-                                    <TableCell className="pl-6">
-                                        <div className="flex flex-col">
-                                            <span className="font-medium">{tech.name}</span>
-                                            <span className="text-xs text-muted-foreground">{tech.id}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-wrap gap-1">
-                                            {tech.skills.slice(0, 2).map((skill) => (
-                                                <Badge key={skill} variant="secondary" className="text-[10px] px-1.5 h-auto">
-                                                    {skill}
-                                                </Badge>
-                                            ))}
-                                            {tech.skills.length > 2 && (
-                                                <span className="text-[10px] text-muted-foreground">+{tech.skills.length - 2} more</span>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-1 text-sm">
-                                            <MapPin className="h-3 w-3 text-muted-foreground" />
-                                            {tech.city}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-1">
-                                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                                            <span className="text-sm font-medium">{tech.rating > 0 ? tech.rating : "New"}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-sm">{tech.jobsCompleted}</TableCell>
-                                    <TableCell>
-                                        <Badge
-                                            variant={
-                                                tech.status === "Active" ? "default" :
-                                                    tech.status === "Pending Approval" ? "secondary" :
-                                                        tech.status === "Suspended" ? "destructive" :
-                                                            "outline"
-                                            }
-                                            className={tech.status === "Active" ? "bg-emerald-500 hover:bg-emerald-600" : ""}
-                                        >
-                                            {tech.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right pr-6">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon">
-                                                    <MoreVertical className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => {
-                                                    setSelectedTech(tech as Technician);
-                                                    setIsVerifyOpen(true);
-                                                }}>
-                                                    <Info className="mr-2 h-4 w-4" /> View Profile
-                                                </DropdownMenuItem>
-                                                {tech.status === "Pending Approval" && (
-                                                    <>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem
-                                                            className="text-emerald-600 font-medium"
-                                                            onClick={() => {
-                                                                setSelectedTech(tech as Technician);
-                                                                setIsVerifyOpen(true);
-                                                            }}
-                                                        >
-                                                            <UserCheck className="mr-2 h-4 w-4" /> Approve
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem className="text-destructive">
-                                                            <UserX className="mr-2 h-4 w-4" /> Reject
-                                                        </DropdownMenuItem>
-                                                    </>
-                                                )}
-                                                {tech.status === "Active" && (
-                                                    <DropdownMenuItem className="text-destructive">
-                                                        Disable / Suspend
-                                                    </DropdownMenuItem>
-                                                )}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-
-            <TechVerification
-                tech={selectedTech}
-                isOpen={isVerifyOpen}
-                onClose={() => setIsVerifyOpen(false)}
-            />
+            {/* Image Modal */}
+            <Dialog open={!!imageModal} onOpenChange={() => setImageModal(null)}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{imageModal?.label}</DialogTitle>
+                    </DialogHeader>
+                    {imageModal?.url && (
+                        <Image src={imageModal.url} alt={imageModal.label} width={400} height={300} className="w-full h-auto rounded" />
+                    )}
+                </DialogContent>
+            </Dialog>
+            {/* Verify Modal */}
+            <Dialog open={!!verifyModal} onOpenChange={() => setVerifyModal(null)}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Verify Technician</DialogTitle>
+                    </DialogHeader>
+                    {verifyModal?.tech && (
+                        <form
+                            onSubmit={e => {
+                                e.preventDefault();
+                                // Here you would call your API to update verification status
+                                setVerifyModal(null);
+                            }}
+                            className="space-y-4"
+                        >
+                            <div>
+                                <div className="font-medium mb-1">{verifyModal.tech.full_name}</div>
+                                <div className="text-xs text-muted-foreground mb-2">ID: {verifyModal.tech.id}</div>
+                            </div>
+                            <div>
+                                <label className="block mb-1 font-medium">Status</label>
+                                <select
+                                    className="w-full border rounded px-2 py-1"
+                                    value={verifyModal.status}
+                                    onChange={e => setVerifyModal(v => v ? { ...v, status: e.target.value } : v)}
+                                    required
+                                >
+                                    <option value="approved">Approve</option>
+                                    <option value="rejected">Reject</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block mb-1 font-medium">Remark</label>
+                                <input
+                                    ref={remarkInputRef}
+                                    className="w-full border rounded px-2 py-1"
+                                    value={verifyModal.remark}
+                                    onChange={e => setVerifyModal(v => v ? { ...v, remark: e.target.value } : v)}
+                                    placeholder="Enter remarks (optional)"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <Button type="button" variant="outline" onClick={() => setVerifyModal(null)}>Cancel</Button>
+                                <Button type="submit" variant="default">Submit</Button>
+                            </div>
+                        </form>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -9,14 +9,6 @@ import {
     CardHeader,
     CardTitle
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@/components/ui/select";
 import {
     Table,
     TableBody,
@@ -28,17 +20,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    Search,
     Download,
-    Calendar,
     Loader2
 } from "lucide-react";
 
 export default function BookingsPage() {
     const [bookings, setBookings] = useState<DatabaseBooking[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
 
     useEffect(() => {
         fetchBookings();
@@ -60,29 +48,6 @@ export default function BookingsPage() {
             setLoading(false);
         }
     }
-
-    const filteredBookings = bookings.filter((booking) => {
-        const matchesSearch =
-            booking.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            booking.mobile_number.includes(searchTerm) ||
-            booking.id.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
-
-        return matchesSearch && matchesStatus;
-    });
-
-    const getStatusBadgeVariant = (status: string) => {
-        switch (status?.toLowerCase()) {
-            case 'completed':
-                return 'default';
-            case 'pending':
-                return 'outline';
-            case 'cancelled':
-                return 'destructive';
-            default:
-                return 'secondary';
-        }
-    };
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-IN', {
@@ -118,112 +83,108 @@ export default function BookingsPage() {
             </div>
 
             <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg font-medium">Filters</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid gap-4 md:grid-cols-3">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Search by name, mobile, or ID..."
-                                className="pl-10"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Statuses</SelectItem>
-                                <SelectItem value="pending">Pending</SelectItem>
-                                <SelectItem value="in_progress">In Progress</SelectItem>
-                                <SelectItem value="completed">Completed</SelectItem>
-                                <SelectItem value="cancelled">Cancelled</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Button variant="ghost" onClick={() => {
-                            setSearchTerm("");
-                            setStatusFilter("all");
-                        }}>
-                            Reset Filters
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card>
                 <CardContent className="p-0">
                     {loading ? (
                         <div className="flex items-center justify-center h-64">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         </div>
                     ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="pl-6">Booking ID</TableHead>
-                                    <TableHead>Customer</TableHead>
-                                    <TableHead>Mobile</TableHead>
-                                    <TableHead>Address</TableHead>
-                                    <TableHead>Pincode</TableHead>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Amount</TableHead>
-                                    <TableHead>Payment Status</TableHead>
-                                    <TableHead>Status</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredBookings.map((booking) => (
-                                    <TableRow key={booking.id}>
-                                        <TableCell className="pl-6 font-medium font-mono text-xs">
-                                            {booking.id.substring(0, 8)}...
-                                        </TableCell>
-                                        <TableCell>{booking.user_name}</TableCell>
-                                        <TableCell>{booking.mobile_number}</TableCell>
-                                        <TableCell className="max-w-xs truncate">
-                                            {booking.full_address}
-                                        </TableCell>
-                                        <TableCell>{booking.pincode}</TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-1">
-                                                <Calendar className="h-3 w-3 text-muted-foreground" />
-                                                {formatDate(booking.created_at)}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            {formatAmount(booking.final_amount_paid || booking.total_estimated_price)}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant={booking.payment_status === 'paid' ? 'default' : 'outline'}>
-                                                {booking.payment_status}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant={getStatusBadgeVariant(booking.status)}>
-                                                {booking.status}
-                                            </Badge>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {filteredBookings.length === 0 && (
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={9} className="h-24 text-center">
-                                            No bookings found.
-                                        </TableCell>
+                                        <TableHead className="pl-6">ID</TableHead>
+                                        <TableHead>User Name</TableHead>
+                                        <TableHead>Mobile</TableHead>
+                                        <TableHead>Full Address</TableHead>
+                                        <TableHead>Landmark</TableHead>
+                                        <TableHead>Category ID</TableHead>
+                                        <TableHead>Issue ID</TableHead>
+                                        <TableHead>Preferred Time Slot</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Media</TableHead>
+                                        <TableHead>Created At</TableHead>
+                                        <TableHead>Pincode</TableHead>
+                                        <TableHead>Order ID</TableHead>
+                                        <TableHead>Note</TableHead>
+                                        <TableHead>Referral Code</TableHead>
+                                        <TableHead>Total Estimated Price</TableHead>
+                                        <TableHead>Net Inspection Fee</TableHead>
+                                        <TableHead>Final Amount Paid</TableHead>
+                                        <TableHead>Technician ID</TableHead>
+                                        <TableHead>Assigned At</TableHead>
+                                        <TableHead>Accepted At</TableHead>
+                                        <TableHead>Completed At</TableHead>
+                                        <TableHead>Payment Status</TableHead>
+                                        <TableHead>Map URL</TableHead>
+                                        <TableHead>Completion Code</TableHead>
+                                        <TableHead>Completion Code Used</TableHead>
+                                        <TableHead>Final Amount To Be Paid</TableHead>
+                                        <TableHead>Payment Method</TableHead>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {bookings.map((booking) => (
+                                        <TableRow key={booking.id}>
+                                            <TableCell className="pl-6 font-mono text-xs">{booking.id}</TableCell>
+                                            <TableCell>{booking.user_name}</TableCell>
+                                            <TableCell>{booking.mobile_number}</TableCell>
+                                            <TableCell className="max-w-xs truncate">{booking.full_address}</TableCell>
+                                            <TableCell>{booking.landmark ?? "-"}</TableCell>
+                                            <TableCell>{booking.category_id}</TableCell>
+                                            <TableCell>{booking.issue_id}</TableCell>
+                                            <TableCell>{booking.preferred_time_slot}</TableCell>
+                                            <TableCell>{booking.status}</TableCell>
+                                            <TableCell>
+                                                {booking.media_url ? (
+                                                    <a href={booking.media_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>
+                                                ) : "-"}
+                                            </TableCell>
+                                            <TableCell>{formatDate(booking.created_at)}</TableCell>
+                                            <TableCell>{booking.pincode}</TableCell>
+                                            <TableCell>{booking.order_id}</TableCell>
+                                            <TableCell>{booking.note ?? "-"}</TableCell>
+                                            <TableCell>{booking.referral_code ?? "-"}</TableCell>
+                                            <TableCell>{formatAmount(booking.total_estimated_price)}</TableCell>
+                                            <TableCell>{formatAmount(booking.net_inspection_fee)}</TableCell>
+                                            <TableCell>{formatAmount(booking.final_amount_paid)}</TableCell>
+                                            <TableCell>{booking.technician_id ?? "-"}</TableCell>
+                                            <TableCell>{booking.assigned_at ? formatDate(booking.assigned_at) : "-"}</TableCell>
+                                            <TableCell>{booking.accepted_at ? formatDate(booking.accepted_at) : "-"}</TableCell>
+                                            <TableCell>{booking.completed_at ? formatDate(booking.completed_at) : "-"}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={booking.payment_status === 'paid' ? 'default' : 'outline'}>
+                                                    {booking.payment_status}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                {booking.map_url ? (
+                                                    <a href={booking.map_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">Map</a>
+                                                ) : "-"}
+                                            </TableCell>
+                                            <TableCell>{booking.completion_code ?? "-"}</TableCell>
+                                            <TableCell>{booking.completion_code_used ? "Yes" : "No"}</TableCell>
+                                            <TableCell>{formatAmount(booking.final_amount_to_be_paid ? Number(booking.final_amount_to_be_paid) : null)}</TableCell>
+                                            <TableCell>{booking.payment_method ?? "-"}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {bookings.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={28} className="h-24 text-center">
+                                                No bookings found.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
                     )}
                 </CardContent>
             </Card>
 
             <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                    Showing {filteredBookings.length} of {bookings.length} bookings
+                    Showing {bookings.length} bookings
                 </p>
             </div>
         </div>

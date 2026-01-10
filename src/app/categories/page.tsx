@@ -1,8 +1,6 @@
 "use client";
 
-import {
-    categoryDetails
-} from "@/lib/mock-data";
+import React, { useEffect, useState } from "react";
 import {
     Card,
     CardContent,
@@ -34,7 +32,75 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion";
 
+// Types for API data
+interface Issue {
+    id: string;
+    category_id: string;
+    title: string;
+    description?: string | null;
+    icon_url?: string;
+    estimated_price?: number;
+    is_active: boolean;
+    sort_order?: number;
+    created_at?: string;
+    base_min_fee?: number;
+}
+
+interface Category {
+    id: string;
+    name: string;
+    slug: string;
+    icon_url?: string;
+    description?: string;
+    is_active: boolean;
+    sort_order?: number;
+    created_at?: string;
+    base_inspection_fee?: number;
+    issues: Issue[];
+}
+
 export default function CategoriesPage() {
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const commonHeaders = {
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+            'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+        };
+        async function fetchData() {
+            try {
+                const catRes = await fetch("https://upoafhtidiwsihwijwex.supabase.co/rest/v1/categories", {
+                    headers: commonHeaders,
+                });
+                const catData: Omit<Category, "issues">[] = await catRes.json();
+                const categoriesWithIssues: Category[] = await Promise.all(
+                    catData.map(async (cat) => {
+                        const issuesRes = await fetch(`https://upoafhtidiwsihwijwex.supabase.co/rest/v1/issues?category_id=eq.${cat.id}&is_active=eq.true`, {
+                            headers: commonHeaders,
+                        });
+                        const issuesData: Issue[] = await issuesRes.json();
+                        return {
+                            ...cat,
+                            issues: issuesData,
+                        };
+                    })
+                );
+                setCategories(categoriesWithIssues);
+            } catch {
+                setError("Failed to fetch data");
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, []);
+
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div className="text-red-500">{error}</div>;
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -50,18 +116,21 @@ export default function CategoriesPage() {
             </div>
 
             <div className="grid gap-6">
-                {categoryDetails.map((cat) => (
+                {categories.map((cat) => (
                     <Card key={cat.id}>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <div>
                                 <div className="flex items-center gap-2">
                                     <CardTitle className="text-xl">{cat.name}</CardTitle>
-                                    <Badge variant={cat.status === "Active" ? "default" : "secondary"}>
-                                        {cat.status}
+                                    <Badge variant={cat.is_active ? "default" : "secondary"}>
+                                        {cat.is_active ? "Active" : "Inactive"}
                                     </Badge>
                                 </div>
                                 <CardDescription>
-                                    Base Inspection Fee: <span className="font-bold text-primary">₹{cat.baseFee}</span>
+                                    {cat.description}
+                                    {typeof cat.base_inspection_fee !== "undefined" && (
+                                        <span className="block mt-1">Base Inspection Fee: <span className="font-bold text-primary">₹{cat.base_inspection_fee}</span></span>
+                                    )}
                                 </CardDescription>
                             </div>
                             <div className="flex gap-2">
@@ -81,16 +150,20 @@ export default function CategoriesPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {cat.issues.map((issue) => (
+                                        {cat.issues.length > 0 ? cat.issues.map((issue) => (
                                             <TableRow key={issue.id}>
-                                                <TableCell className="pl-4 font-medium">{issue.name}</TableCell>
-                                                <TableCell className="text-right text-muted-foreground">₹{issue.minPrice}</TableCell>
-                                                <TableCell className="text-right text-muted-foreground">₹{issue.maxPrice}</TableCell>
+                                                <TableCell className="pl-4 font-medium">{issue.title}</TableCell>
+                                                <TableCell className="text-right text-muted-foreground">₹{issue.base_min_fee ?? issue.estimated_price ?? "-"}</TableCell>
+                                                <TableCell className="text-right text-muted-foreground">₹{issue.estimated_price ?? "-"}</TableCell>
                                                 <TableCell className="text-right pr-4">
                                                     <Button variant="ghost" size="sm">Edit Price</Button>
                                                 </TableCell>
                                             </TableRow>
-                                        ))}
+                                        )) : (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="text-center text-muted-foreground">No issues found</TableCell>
+                                            </TableRow>
+                                        )}
                                         <TableRow>
                                             <TableCell colSpan={4} className="p-0">
                                                 <Button variant="ghost" className="w-full h-10 rounded-none border-t border-dashed gap-2 text-muted-foreground hover:text-primary">
