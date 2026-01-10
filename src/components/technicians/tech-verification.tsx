@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Technician } from "@/lib/types";
 import { useState } from "react";
 import {
@@ -29,9 +28,33 @@ interface TechVerificationProps {
 }
 
 export function TechVerification({ tech, isOpen, onClose }: TechVerificationProps) {
-    const [remarks, setRemarks] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     if (!tech) return null;
+
+    // PATCH API call for verification
+    const handleVerify = async () => {
+        setSubmitting(true);
+        setError(null);
+        try {
+            const res = await fetch(`https://upoafhtidiwsihwijwex.supabase.co/rest/v1/technicians?id=eq.${tech.id}`, {
+                method: "PATCH",
+                headers: {
+                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+                    'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ is_verified: true }),
+            });
+            if (!res.ok) throw new Error("Failed to verify technician");
+            onClose();
+        } catch (err: any) {
+            setError(err.message || "Failed to verify technician");
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -91,25 +114,16 @@ export function TechVerification({ tech, isOpen, onClose }: TechVerificationProp
                             <span className="text-emerald-600 font-medium">Clean</span>
                         </div>
                     </div>
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Admin Remarks</label>
-                        <Textarea
-                            placeholder="Add notes for the technician or internal team..."
-                            value={remarks}
-                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRemarks(e.target.value)}
-                            className="min-h-[100px]"
-                        />
-                    </div>
                 </div>
 
+                {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
                 <DialogFooter className="gap-2 sm:gap-0">
                     <Button variant="ghost" onClick={onClose} className="flex-1">Close</Button>
                     <Button variant="outline" className="flex-1 text-destructive hover:bg-destructive/10">
                         <XCircle className="mr-2 h-4 w-4" /> Reject Application
                     </Button>
-                    <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700">
-                        <CheckCircle2 className="mr-2 h-4 w-4" /> Approve & Enable
+                    <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={handleVerify} disabled={submitting}>
+                        <CheckCircle2 className="mr-2 h-4 w-4" /> {submitting ? "Verifying..." : "Approve & Enable"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

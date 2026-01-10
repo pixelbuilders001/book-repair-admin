@@ -24,6 +24,10 @@ import {
     Activity
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 
 interface ServiceableCity {
     id: string;
@@ -38,6 +42,15 @@ export default function CitiesPage() {
     const [cities, setCities] = useState<ServiceableCity[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [form, setForm] = useState({
+        city_name: "",
+        is_active: true,
+        inspection_multiplier: 1,
+        repair_multiplier: 1,
+    });
+    const [submitting, setSubmitting] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
 
     useEffect(() => {
         const commonHeaders = {
@@ -61,6 +74,65 @@ export default function CitiesPage() {
         fetchData();
     }, []);
 
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value, type, checked } = e.target;
+        setForm((prev) => ({
+            ...prev,
+            [name]: type === "checkbox" ? checked : value,
+        }));
+    };
+
+    const handleAddCity = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSubmitting(true);
+        setFormError(null);
+        try {
+            const payload = {
+                city_name: form.city_name,
+                is_active: form.is_active,
+                created_at: new Date().toISOString(),
+                inspection_multiplier: Number(form.inspection_multiplier),
+                repair_multiplier: Number(form.repair_multiplier),
+            };
+            const res = await fetch("https://upoafhtidiwsihwijwex.supabase.co/rest/v1/serviceable_cities", {
+                method: "POST",
+                headers: {
+                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+                    'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+            if (!res.ok) throw new Error("Failed to add city");
+            setModalOpen(false);
+            setForm({ city_name: "", is_active: true, inspection_multiplier: 1, repair_multiplier: 1 });
+            // Optionally, refresh cities from API or optimistically add
+            setCities((prev) => [...prev, { ...payload, id: "temp-" + Date.now() }]);
+        } catch (err: any) {
+            setFormError(err.message || "Failed to add city");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleToggleActive = async (cityId: string, currentStatus: boolean) => {
+        try {
+            const res = await fetch(`https://upoafhtidiwsihwijwex.supabase.co/rest/v1/serviceable_cities?id=eq.${cityId}`, {
+                method: "PATCH",
+                headers: {
+                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+                    'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ is_active: !currentStatus }),
+            });
+            if (!res.ok) throw new Error("Failed to update city status");
+            setCities((prev) => prev.map(city => city.id === cityId ? { ...city, is_active: !currentStatus } : city));
+        } catch (err) {
+            // Optionally show error to user
+        }
+    };
+
     if (loading) return <div>Loading...</div>;
     if (error) return <div className="text-red-500">{error}</div>;
 
@@ -69,59 +141,45 @@ export default function CitiesPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Cities & Serviceability</h1>
-                    <p className="text-muted-foreground">
-                        Enable/disable cities and set local pricing multipliers based on operational costs.
+                    <p className="text-muted-foreground">Enable/disable cities and set local pricing multipliers based on operational costs.
                     </p>
                 </div>
-                <Button>
+                <Button onClick={() => setModalOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" /> Add New City
                 </Button>
             </div>
-
-            <div className="grid gap-4 md:grid-cols-4">
-                <Card className="bg-primary/5 border-primary/20">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <Activity className="h-4 w-4 text-primary" /> Active Cities
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">12</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">Avg. Multiplier</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">1.12x</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">Top Performing City</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-emerald-600">Patna</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">Underperforming</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-amber-600">Indore</div>
-                    </CardContent>
-                </Card>
-            </div>
+            <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add New City</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleAddCity} className="space-y-4">
+                        <div>
+                            <Label htmlFor="city_name">City Name</Label>
+                            <Input id="city_name" name="city_name" value={form.city_name} onChange={handleInputChange} required />
+                        </div>
+                        <div>
+                            <Label htmlFor="inspection_multiplier">Inspection Multiplier</Label>
+                            <Input id="inspection_multiplier" name="inspection_multiplier" type="number" min="1" step="0.01" value={form.inspection_multiplier} onChange={handleInputChange} required />
+                        </div>
+                        <div>
+                            <Label htmlFor="repair_multiplier">Repair Multiplier</Label>
+                            <Input id="repair_multiplier" name="repair_multiplier" type="number" min="1" step="0.01" value={form.repair_multiplier} onChange={handleInputChange} required />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Label htmlFor="is_active">Active</Label>
+                            <input id="is_active" name="is_active" type="checkbox" checked={form.is_active} onChange={handleInputChange} />
+                        </div>
+                        {formError && <div className="text-red-500 text-sm">{formError}</div>}
+                        <DialogFooter>
+                            <Button type="submit" disabled={submitting}>{submitting ? "Adding..." : "Add City"}</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             <Card>
-                <CardHeader>
-                    <CardTitle>Serviceable Cities Ledger</CardTitle>
-                    <CardDescription>
-                        Manage regional presence and operational status.
-                    </CardDescription>
-                </CardHeader>
+             
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
@@ -152,7 +210,7 @@ export default function CitiesPage() {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right pr-6">
-                                        <Switch checked={city.is_active} />
+                                        <Switch checked={city.is_active} onCheckedChange={() => handleToggleActive(city.id, city.is_active)} />
                                     </TableCell>
                                 </TableRow>
                             ))}

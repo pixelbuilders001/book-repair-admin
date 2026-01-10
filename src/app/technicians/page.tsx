@@ -59,8 +59,7 @@ function formatDate(dateString?: string | null) {
 export default function TechniciansPage() {
     const [technicians, setTechnicians] = useState<TechnicianApi[]>([]);
     const [imageModal, setImageModal] = useState<{ url: string; label: string } | null>(null);
-    const [verifyModal, setVerifyModal] = useState<{ tech: TechnicianApi; status: string; remark: string } | null>(null);
-    const remarkInputRef = useRef<HTMLInputElement>(null);
+    const [verifyModal, setVerifyModal] = useState<{ tech: TechnicianApi; status: string } | null>(null);
 
     useEffect(() => {
         const commonHeaders = {
@@ -175,7 +174,7 @@ export default function TechniciansPage() {
                                                     <option value="active">Active</option>
                                                     <option value="inactive">Inactive</option>
                                                 </select>
-                                                <Button size="sm" variant="default" onClick={() => setVerifyModal({ tech, status: tech.verification_status ?? "pending", remark: tech.remark ?? "" })}>
+                                                <Button size="sm" variant="default" onClick={() => setVerifyModal({ tech, status: tech.verification_status ?? "pending" })}>
                                                     Verify
                                                 </Button>
                                             </div>
@@ -206,10 +205,26 @@ export default function TechniciansPage() {
                     </DialogHeader>
                     {verifyModal?.tech && (
                         <form
-                            onSubmit={e => {
+                            onSubmit={async e => {
                                 e.preventDefault();
-                                // Here you would call your API to update verification status
-                                setVerifyModal(null);
+                                const is_verified = verifyModal.status === "approved";
+                                try {
+                                    const res = await fetch(`https://upoafhtidiwsihwijwex.supabase.co/rest/v1/technicians?id=eq.${verifyModal.tech.id}`, {
+                                        method: "PATCH",
+                                        headers: {
+                                            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+                                            'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+                                            'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({ is_verified }),
+                                    });
+                                    if (!res.ok) throw new Error("Failed to update verification status");
+                                    setTechnicians(prev => prev.map(t => t.id === verifyModal.tech.id ? { ...t, is_verified } : t));
+                                } catch {
+                                    // Optionally show error
+                                } finally {
+                                    setVerifyModal(null);
+                                }
                             }}
                             className="space-y-4"
                         >
@@ -228,16 +243,6 @@ export default function TechniciansPage() {
                                     <option value="approved">Approve</option>
                                     <option value="rejected">Reject</option>
                                 </select>
-                            </div>
-                            <div>
-                                <label className="block mb-1 font-medium">Remark</label>
-                                <input
-                                    ref={remarkInputRef}
-                                    className="w-full border rounded px-2 py-1"
-                                    value={verifyModal.remark}
-                                    onChange={e => setVerifyModal(v => v ? { ...v, remark: e.target.value } : v)}
-                                    placeholder="Enter remarks (optional)"
-                                />
                             </div>
                             <div className="flex justify-end gap-2">
                                 <Button type="button" variant="outline" onClick={() => setVerifyModal(null)}>Cancel</Button>

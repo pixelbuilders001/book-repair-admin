@@ -31,9 +31,14 @@ export const navItems = [
         href: "/technician-stats",
         icon: Users,
     },
+    // {
+    //     title: "Payments",
+    //     href: "/payments",
+    //     icon: CreditCard,
+    // },
     {
-        title: "Payments",
-        href: "/payments",
+        title: "Platform Earnings",
+        href: "/platform-earnings",
         icon: CreditCard,
     },
     {

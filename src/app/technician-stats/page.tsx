@@ -84,12 +84,7 @@ export default function TechnicianStatsPage() {
                 </div>
             </div>
             <Card>
-                <CardHeader>
-                    <CardTitle>Technician Stats</CardTitle>
-                    <CardDescription>
-                        All technician stats and performance metrics.
-                    </CardDescription>
-                </CardHeader>
+              
                 <CardContent className="p-0">
                     {loading ? (
                         <div className="flex items-center justify-center h-32">Loading...</div>
