@@ -1,5 +1,7 @@
 "use client";
 
+import { getWallets } from "./actions";
+
 import { useEffect, useState } from "react";
 import {
     Card,
@@ -30,18 +32,12 @@ export default function WalletsPage() {
     const [wallets, setWallets] = useState<Wallet[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // ... inside component
     useEffect(() => {
         async function fetchWallets() {
             setLoading(true);
             try {
-                const res = await fetch("https://upoafhtidiwsihwijwex.supabase.co/rest/v1/wallets", {
-                    headers: {
-                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                        'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-                const data: Wallet[] = await res.json();
+                const data = await getWallets();
                 setWallets(data);
             } catch {
                 setWallets([]);

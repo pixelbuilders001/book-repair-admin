@@ -1,5 +1,7 @@
 "use client";
 
+import { getPlatformEarnings } from "./actions";
+
 import React, { useEffect, useState } from "react";
 import {
     Card,
@@ -49,18 +51,12 @@ export default function PlatformEarningsPage() {
     const [earnings, setEarnings] = useState<PlatformEarning[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // ... inside component
     useEffect(() => {
         async function fetchEarnings() {
             setLoading(true);
             try {
-                const res = await fetch("https://upoafhtidiwsihwijwex.supabase.co/rest/v1/platform_earnings", {
-                    headers: {
-                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                        'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-                const data: PlatformEarning[] = await res.json();
+                const data = await getPlatformEarnings();
                 setEarnings(data);
             } catch {
                 setEarnings([]);
@@ -82,7 +78,7 @@ export default function PlatformEarningsPage() {
                 </div>
             </div>
             <Card>
-             
+
                 <CardContent className="p-0">
                     {loading ? (
                         <div className="flex items-center justify-center h-32">Loading...</div>

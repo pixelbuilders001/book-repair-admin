@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { getBookings } from "./actions"; // Import server action
+import { logout } from "../auth/actions"; // Import logout action
 import { DatabaseBooking } from "@/lib/types";
 import {
     Card,
     CardContent,
-    CardHeader,
-    CardTitle
 } from "@/components/ui/card";
 import {
     Table,
@@ -21,12 +20,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
     Download,
-    Loader2
+    Loader2,
+    LogOut
 } from "lucide-react";
+
+import { AssignTechnicianModal } from "@/components/bookings/AssignTechnicianModal";
 
 export default function BookingsPage() {
     const [bookings, setBookings] = useState<DatabaseBooking[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    console.log(bookings);
 
     useEffect(() => {
         fetchBookings();
@@ -35,12 +40,9 @@ export default function BookingsPage() {
     async function fetchBookings() {
         try {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('booking')
-                .select('*')
-                .order('created_at', { ascending: false });
+            const { data, error } = await getBookings();
 
-            if (error) throw error;
+            if (error) throw new Error(error);
             setBookings(data || []);
         } catch (error) {
             console.error('Error fetching bookings:', error);
@@ -62,6 +64,11 @@ export default function BookingsPage() {
         return `₹${amount.toLocaleString('en-IN')}`;
     };
 
+    const handleAssignClick = (bookingId: string) => {
+        setSelectedBookingId(bookingId);
+        setIsAssignModalOpen(true);
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -72,13 +79,16 @@ export default function BookingsPage() {
                     </p>
                 </div>
                 <div className="flex gap-2">
+                    {/* <Button variant="outline" onClick={() => logout()}>
+                        <LogOut className="mr-2 h-4 w-4" /> Logout
+                    </Button> */}
                     <Button variant="outline" onClick={fetchBookings}>
                         Refresh
                     </Button>
-                    <Button variant="outline">
+                    {/* <Button variant="outline">
                         <Download className="mr-2 h-4 w-4" /> Export CSV
                     </Button>
-                    <Button>Create Booking</Button>
+                    <Button>Create Booking</Button> */}
                 </div>
             </div>
 
@@ -95,23 +105,23 @@ export default function BookingsPage() {
                                     <TableRow>
                                         <TableHead className="pl-6">ID</TableHead>
                                         <TableHead>User Name</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Action</TableHead>
                                         <TableHead>Mobile</TableHead>
                                         <TableHead>Full Address</TableHead>
                                         <TableHead>Landmark</TableHead>
-                                        <TableHead>Category ID</TableHead>
-                                        <TableHead>Issue ID</TableHead>
-                                        <TableHead>Preferred Time Slot</TableHead>
-                                        <TableHead>Status</TableHead>
+                                        <TableHead className="min-w-[250px]">Issue / Category</TableHead>
+                                        <TableHead>Preferred Time/Date slot</TableHead>
                                         <TableHead>Media</TableHead>
                                         <TableHead>Created At</TableHead>
-                                        <TableHead>Pincode</TableHead>
+                                        {/* <TableHead>Pincode</TableHead> */}
                                         <TableHead>Order ID</TableHead>
                                         <TableHead>Note</TableHead>
                                         <TableHead>Referral Code</TableHead>
                                         <TableHead>Total Estimated Price</TableHead>
                                         <TableHead>Net Inspection Fee</TableHead>
                                         <TableHead>Final Amount Paid</TableHead>
-                                        <TableHead>Technician ID</TableHead>
+                                        <TableHead>Technician</TableHead>
                                         <TableHead>Assigned At</TableHead>
                                         <TableHead>Accepted At</TableHead>
                                         <TableHead>Completed At</TableHead>
@@ -121,6 +131,7 @@ export default function BookingsPage() {
                                         <TableHead>Completion Code Used</TableHead>
                                         <TableHead>Final Amount To Be Paid</TableHead>
                                         <TableHead>Payment Method</TableHead>
+                                        <TableHead>wallet used</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -128,27 +139,50 @@ export default function BookingsPage() {
                                         <TableRow key={booking.id}>
                                             <TableCell className="pl-6 font-mono text-xs">{booking.id}</TableCell>
                                             <TableCell>{booking.user_name}</TableCell>
-                                            <TableCell>{booking.mobile_number}</TableCell>
-                                            <TableCell className="max-w-xs truncate">{booking.full_address}</TableCell>
-                                            <TableCell>{booking.landmark ?? "-"}</TableCell>
-                                            <TableCell>{booking.category_id}</TableCell>
-                                            <TableCell>{booking.issue_id}</TableCell>
-                                            <TableCell>{booking.preferred_time_slot}</TableCell>
                                             <TableCell>{booking.status}</TableCell>
+                                            <TableCell>
+                                                {booking.status === 'pending' && (
+                                                    <Button size="sm" onClick={() => handleAssignClick(booking.id)}>
+                                                        Assign Tech
+                                                    </Button>
+                                                )}
+                                                {booking.status === 'assigned' && (
+                                                    <Badge variant="secondary">Assigned</Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>{booking.mobile_number}</TableCell>
+                                            <TableCell className="max-w-xs truncate">{booking.full_address},{booking.pincode}</TableCell>
+                                            <TableCell>{booking.landmark ?? "-"}</TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-3">
+                                                    {booking.issue?.icon_url && (
+                                                        <img
+                                                            src={booking.issue.icon_url}
+                                                            alt={booking.issue.title}
+                                                            className="w-10 h-10 rounded-md object-cover"
+                                                        />
+                                                    )}
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium text-sm">{booking.issue?.name || 'Unknown Issue'}</span>
+                                                        <span className="text-xs text-muted-foreground">{booking.category?.name || 'Unknown Category'}</span>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell><h4 className="w-20">{booking.preferred_time_slot}</h4>{booking.preferred_service_date}</TableCell>
                                             <TableCell>
                                                 {booking.media_url ? (
                                                     <a href={booking.media_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>
                                                 ) : "-"}
                                             </TableCell>
                                             <TableCell>{formatDate(booking.created_at)}</TableCell>
-                                            <TableCell>{booking.pincode}</TableCell>
+                                            {/* <TableCell>{booking.pincode}</TableCell> */}
                                             <TableCell>{booking.order_id}</TableCell>
                                             <TableCell>{booking.note ?? "-"}</TableCell>
                                             <TableCell>{booking.referral_code ?? "-"}</TableCell>
                                             <TableCell>{formatAmount(booking.total_estimated_price)}</TableCell>
                                             <TableCell>{formatAmount(booking.net_inspection_fee)}</TableCell>
                                             <TableCell>{formatAmount(booking.final_amount_paid)}</TableCell>
-                                            <TableCell>{booking.technician_id ?? "-"}</TableCell>
+                                            <TableCell>{booking.technician?.name || booking.technician_id || "-"}</TableCell>
                                             <TableCell>{booking.assigned_at ? formatDate(booking.assigned_at) : "-"}</TableCell>
                                             <TableCell>{booking.accepted_at ? formatDate(booking.accepted_at) : "-"}</TableCell>
                                             <TableCell>{booking.completed_at ? formatDate(booking.completed_at) : "-"}</TableCell>
@@ -166,6 +200,7 @@ export default function BookingsPage() {
                                             <TableCell>{booking.completion_code_used ? "Yes" : "No"}</TableCell>
                                             <TableCell>{formatAmount(booking.final_amount_to_be_paid ? Number(booking.final_amount_to_be_paid) : null)}</TableCell>
                                             <TableCell>{booking.payment_method ?? "-"}</TableCell>
+                                            <TableCell>{formatAmount(booking.wallet_used_amount ? Number(booking.wallet_used_amount) : null)}</TableCell>
                                         </TableRow>
                                     ))}
                                     {bookings.length === 0 && (
@@ -187,6 +222,18 @@ export default function BookingsPage() {
                     Showing {bookings.length} bookings
                 </p>
             </div>
+
+            {selectedBookingId && (
+                <AssignTechnicianModal
+                    isOpen={isAssignModalOpen}
+                    onClose={() => setIsAssignModalOpen(false)}
+                    bookingId={selectedBookingId}
+                    onSuccess={() => {
+                        fetchBookings();
+                        setIsAssignModalOpen(false);
+                    }}
+                />
+            )}
         </div>
     );
 }

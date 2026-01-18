@@ -28,6 +28,17 @@ export interface DatabaseBooking {
     completion_code_used: boolean;
     final_amount_to_be_paid: string | null;
     payment_method: string | null;
+    wallet_used_amount: number | null;
+    issue?: {
+        name: string;
+        image_url: string;
+    };
+    category?: {
+        name: string;
+    };
+    technician?: {
+        name: string;
+    };
 }
 
 // UI display types (for backward compatibility)
@@ -93,4 +104,17 @@ export interface WalletTransaction {
     amount: string;
     reason: string;
     date: string;
+}
+
+export interface Profile {
+    id: string;
+    email: string;
+    full_name: string | null;
+    role: string;
+    phone: string | null;
+    onboarding_status: string;
+    is_verified: boolean;
+    selfie_url: string | null;
+    created_at: string | null;
+    updated_at: string | null;
 }

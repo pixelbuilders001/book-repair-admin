@@ -1,5 +1,7 @@
 "use client";
 
+import { getCategoriesWithIssues } from "./actions";
+
 import React, { useEffect, useState } from "react";
 import {
     Card,
@@ -64,31 +66,12 @@ export default function CategoriesPage() {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
+    // ... inside component
     useEffect(() => {
-        const commonHeaders = {
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-            'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json',
-        };
         async function fetchData() {
             try {
-                const catRes = await fetch("https://upoafhtidiwsihwijwex.supabase.co/rest/v1/categories", {
-                    headers: commonHeaders,
-                });
-                const catData: Omit<Category, "issues">[] = await catRes.json();
-                const categoriesWithIssues: Category[] = await Promise.all(
-                    catData.map(async (cat) => {
-                        const issuesRes = await fetch(`https://upoafhtidiwsihwijwex.supabase.co/rest/v1/issues?category_id=eq.${cat.id}&is_active=eq.true`, {
-                            headers: commonHeaders,
-                        });
-                        const issuesData: Issue[] = await issuesRes.json();
-                        return {
-                            ...cat,
-                            issues: issuesData,
-                        };
-                    })
-                );
-                setCategories(categoriesWithIssues);
+                const data = await getCategoriesWithIssues();
+                setCategories(data);
             } catch {
                 setError("Failed to fetch data");
             } finally {

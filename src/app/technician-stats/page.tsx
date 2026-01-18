@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getTechnicianStats } from "./actions";
 import {
     Card,
     CardContent,
@@ -37,20 +38,15 @@ export default function TechnicianStatsPage() {
     const [stats, setStats] = useState<TechnicianStat[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // ... inside component
     useEffect(() => {
         async function fetchStats() {
             setLoading(true);
             try {
-                const res = await fetch("https://upoafhtidiwsihwijwex.supabase.co/rest/v1/technician_stats", {
-                    headers: {
-                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                        'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-                const data: TechnicianStat[] = await res.json();
-                setStats(data);
-            } catch {
+                const data = await getTechnicianStats();
+                setStats(Array.isArray(data) ? data : (data ? [data] : []));
+            } catch (error) {
+                console.error("Failed to fetch stats", error);
                 setStats([]);
             } finally {
                 setLoading(false);
@@ -84,7 +80,7 @@ export default function TechnicianStatsPage() {
                 </div>
             </div>
             <Card>
-              
+
                 <CardContent className="p-0">
                     {loading ? (
                         <div className="flex items-center justify-center h-32">Loading...</div>

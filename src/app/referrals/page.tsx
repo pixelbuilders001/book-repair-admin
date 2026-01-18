@@ -1,5 +1,7 @@
 "use client";
 
+import { getReferralBookings } from "./actions";
+
 import { useEffect, useState } from "react";
 import { referrals } from "@/lib/mock-data";
 import {
@@ -44,18 +46,12 @@ export default function ReferralsPage() {
     const [referralBookings, setReferralBookings] = useState<ReferralBooking[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // ... inside component
     useEffect(() => {
         async function fetchReferralBookings() {
             setLoading(true);
             try {
-                const res = await fetch("https://upoafhtidiwsihwijwex.supabase.co/rest/v1/referral_bookings", {
-                    headers: {
-                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                        'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-                const data: ReferralBooking[] = await res.json();
+                const data = await getReferralBookings();
                 setReferralBookings(data);
             } catch {
                 setReferralBookings([]);

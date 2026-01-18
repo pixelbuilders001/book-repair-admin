@@ -1,5 +1,4 @@
 "use client";
-
 import {
   dashboardStats,
   bookingData,
@@ -46,7 +45,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
         <p className="text-muted-foreground">
-          Welcome back, Rajeev. Here's what's happening with FixIt today.
+          Welcome back, Rajeev. Here&apos;s what&apos;s happening with FixIt today.
         </p>
       </div>
 

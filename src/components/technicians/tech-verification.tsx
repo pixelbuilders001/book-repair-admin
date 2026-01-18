@@ -30,24 +30,20 @@ interface TechVerificationProps {
 export function TechVerification({ tech, isOpen, onClose }: TechVerificationProps) {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false); // Added for fetchTech
+    const [technicianData, setTechnicianData] = useState<Technician | null>(null); // Added for fetchTech
 
     if (!tech) return null;
 
+    import { verifyTechnician } from "@/app/technicians/actions";
+
+    // ... inside component
     // PATCH API call for verification
     const handleVerify = async () => {
         setSubmitting(true);
         setError(null);
         try {
-            const res = await fetch(`https://upoafhtidiwsihwijwex.supabase.co/rest/v1/technicians?id=eq.${tech.id}`, {
-                method: "PATCH",
-                headers: {
-                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                    'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ is_verified: true }),
-            });
-            if (!res.ok) throw new Error("Failed to verify technician");
+            await verifyTechnician(tech.id, { is_verified: true });
             onClose();
         } catch (err: any) {
             setError(err.message || "Failed to verify technician");

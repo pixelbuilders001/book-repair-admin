@@ -38,6 +38,8 @@ interface ServiceableCity {
     repair_multiplier: number;
 }
 
+import { getCities, addCity, toggleCityStatus } from "./actions";
+
 export default function CitiesPage() {
     const [cities, setCities] = useState<ServiceableCity[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -52,18 +54,20 @@ export default function CitiesPage() {
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
 
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value, type, checked } = e.target;
+        setForm((prev) => ({
+            ...prev,
+            [name]: type === "checkbox" ? checked : value,
+        }));
+    };
+
+    // ... inside component
     useEffect(() => {
-        const commonHeaders = {
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-            'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json',
-        };
         async function fetchData() {
             try {
-                const res = await fetch("https://upoafhtidiwsihwijwex.supabase.co/rest/v1/serviceable_cities", {
-                    headers: commonHeaders,
-                });
-                const data: ServiceableCity[] = await res.json();
+                setLoading(true);
+                const data = await getCities();
                 setCities(data);
             } catch {
                 setError("Failed to fetch cities");
@@ -74,14 +78,6 @@ export default function CitiesPage() {
         fetchData();
     }, []);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value, type, checked } = e.target;
-        setForm((prev) => ({
-            ...prev,
-            [name]: type === "checkbox" ? checked : value,
-        }));
-    };
-
     const handleAddCity = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
@@ -90,24 +86,15 @@ export default function CitiesPage() {
             const payload = {
                 city_name: form.city_name,
                 is_active: form.is_active,
-                created_at: new Date().toISOString(),
                 inspection_multiplier: Number(form.inspection_multiplier),
                 repair_multiplier: Number(form.repair_multiplier),
             };
-            const res = await fetch("https://upoafhtidiwsihwijwex.supabase.co/rest/v1/serviceable_cities", {
-                method: "POST",
-                headers: {
-                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                    'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            });
-            if (!res.ok) throw new Error("Failed to add city");
+            const data = await addCity(payload);
             setModalOpen(false);
             setForm({ city_name: "", is_active: true, inspection_multiplier: 1, repair_multiplier: 1 });
-            // Optionally, refresh cities from API or optimistically add
-            setCities((prev) => [...prev, { ...payload, id: "temp-" + Date.now() }]);
+            if (data && data.length > 0) {
+                setCities((prev) => [...prev, data[0]]);
+            }
         } catch (err: any) {
             setFormError(err.message || "Failed to add city");
         } finally {
@@ -117,16 +104,7 @@ export default function CitiesPage() {
 
     const handleToggleActive = async (cityId: string, currentStatus: boolean) => {
         try {
-            const res = await fetch(`https://upoafhtidiwsihwijwex.supabase.co/rest/v1/serviceable_cities?id=eq.${cityId}`, {
-                method: "PATCH",
-                headers: {
-                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                    'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ is_active: !currentStatus }),
-            });
-            if (!res.ok) throw new Error("Failed to update city status");
+            await toggleCityStatus(cityId, !currentStatus);
             setCities((prev) => prev.map(city => city.id === cityId ? { ...city, is_active: !currentStatus } : city));
         } catch (err) {
             // Optionally show error to user
@@ -179,7 +157,7 @@ export default function CitiesPage() {
             </Dialog>
 
             <Card>
-             
+
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
