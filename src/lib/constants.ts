@@ -7,7 +7,8 @@ import {
     Wallet,
     Settings,
     MapPin,
-    ClipboardList
+    ClipboardList,
+    UserCircle
 } from "lucide-react";
 
 export const navItems = [
@@ -25,6 +26,11 @@ export const navItems = [
         title: "Technicians",
         href: "/technicians",
         icon: Users,
+    },
+    {
+        title: "Profiles",
+        href: "/profiles",
+        icon: UserCircle,
     },
     {
         title: "Technician Stats",

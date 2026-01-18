@@ -1,6 +1,7 @@
 "use client";
 
-import { getTechnicians } from "./actions";
+import { getTechnicians, verifyTechnician, updateTechnician } from "./actions";
+import { useToast } from "@/components/ui/use-toast";
 
 import React, { useEffect, useState, useRef } from "react";
 import Image from "next/image";
@@ -59,9 +60,17 @@ function formatDate(dateString?: string | null) {
 }
 
 export default function TechniciansPage() {
+    const { toast } = useToast();
     const [technicians, setTechnicians] = useState<TechnicianApi[]>([]);
     const [imageModal, setImageModal] = useState<{ url: string; label: string } | null>(null);
-    const [verifyModal, setVerifyModal] = useState<{ tech: TechnicianApi; status: string; remark: string } | null>(null);
+    const [verifyModal, setVerifyModal] = useState<{
+        tech: TechnicianApi;
+        status: string;
+        remark: string;
+        is_verified: boolean;
+        is_active: boolean;
+    } | null>(null);
+    const [submitting, setSubmitting] = useState(false);
     const remarkInputRef = useRef<HTMLInputElement>(null);
     const [loading, setLoading] = useState(true);
 
@@ -165,15 +174,27 @@ export default function TechniciansPage() {
                                                 <select
                                                     className="border rounded px-2 py-1 text-sm"
                                                     value={tech.is_active ? "active" : "inactive"}
-                                                    onChange={e => {
-                                                        // For now, just update UI state locally. Replace with API call if needed.
-                                                        setTechnicians(prev => prev.map(t => t.id === tech.id ? { ...t, is_active: e.target.value === "active" } : t));
+                                                    onChange={async e => {
+                                                        const newStatus = e.target.value === "active";
+                                                        try {
+                                                            await updateTechnician(tech.id, { is_active: newStatus });
+                                                            setTechnicians(prev => prev.map(t => t.id === tech.id ? { ...t, is_active: newStatus } : t));
+                                                            toast({ title: "Success", description: "Technician status updated" });
+                                                        } catch (err: any) {
+                                                            toast({ title: "Error", description: err.message, variant: "destructive" });
+                                                        }
                                                     }}
                                                 >
                                                     <option value="active">Active</option>
                                                     <option value="inactive">Inactive</option>
                                                 </select>
-                                                <Button size="sm" variant="default" onClick={() => setVerifyModal({ tech, status: tech.verification_status ?? "pending", remark: tech.remark ?? "" })}>
+                                                <Button size="sm" variant="default" onClick={() => setVerifyModal({
+                                                    tech,
+                                                    status: tech.verification_status ?? "pending",
+                                                    remark: tech.remark ?? "",
+                                                    is_verified: tech.is_verified ?? false,
+                                                    is_active: tech.is_active ?? false
+                                                })}>
                                                     Verify
                                                 </Button>
                                             </div>
@@ -204,10 +225,41 @@ export default function TechniciansPage() {
                     </DialogHeader>
                     {verifyModal?.tech && (
                         <form
-                            onSubmit={e => {
+                            onSubmit={async e => {
                                 e.preventDefault();
-                                // Here you would call your API to update verification status
-                                setVerifyModal(null);
+                                if (!verifyModal) return;
+                                setSubmitting(true);
+                                try {
+                                    // 1. Call Edge Function for verification
+                                    await verifyTechnician(
+                                        verifyModal.tech.id,
+                                        verifyModal.status as 'approved' | 'rejected',
+                                        verifyModal.remark
+                                    );
+
+                                    // 2. Call PATCH for other flags if needed (e.g. manual toggle in modal)
+                                    await updateTechnician(verifyModal.tech.id, {
+                                        is_verified: verifyModal.is_verified,
+                                        is_active: verifyModal.is_active
+                                    });
+
+                                    toast({
+                                        title: "Success",
+                                        description: "Technician verification processed successfully"
+                                    });
+                                    // Refresh the list
+                                    const data = await getTechnicians();
+                                    setTechnicians(data);
+                                    setVerifyModal(null);
+                                } catch (error: any) {
+                                    toast({
+                                        title: "Error",
+                                        description: error.message || "Failed to update technician",
+                                        variant: "destructive"
+                                    });
+                                } finally {
+                                    setSubmitting(false);
+                                }
                             }}
                             className="space-y-4"
                         >
@@ -225,6 +277,29 @@ export default function TechniciansPage() {
                                 >
                                     <option value="approved">Approve</option>
                                     <option value="rejected">Reject</option>
+                                    <option value="pending">Pending</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block mb-1 font-medium">Is Verified</label>
+                                <select
+                                    className="w-full border rounded px-2 py-1"
+                                    value={verifyModal.is_verified ? "true" : "false"}
+                                    onChange={e => setVerifyModal(v => v ? { ...v, is_verified: e.target.value === "true" } : v)}
+                                >
+                                    <option value="true">True</option>
+                                    <option value="false">False</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block mb-1 font-medium">Is Active</label>
+                                <select
+                                    className="w-full border rounded px-2 py-1"
+                                    value={verifyModal.is_active ? "true" : "false"}
+                                    onChange={e => setVerifyModal(v => v ? { ...v, is_active: e.target.value === "true" } : v)}
+                                >
+                                    <option value="true">True</option>
+                                    <option value="false">False</option>
                                 </select>
                             </div>
                             <div>
@@ -238,8 +313,10 @@ export default function TechniciansPage() {
                                 />
                             </div>
                             <div className="flex justify-end gap-2">
-                                <Button type="button" variant="outline" onClick={() => setVerifyModal(null)}>Cancel</Button>
-                                <Button type="submit" variant="default">Submit</Button>
+                                <Button type="button" variant="outline" onClick={() => setVerifyModal(null)} disabled={submitting}>Cancel</Button>
+                                <Button type="submit" variant="default" disabled={submitting}>
+                                    {submitting ? "Submitting..." : "Submit"}
+                                </Button>
                             </div>
                         </form>
                     )}
