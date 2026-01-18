@@ -6,11 +6,11 @@ import { cn } from "@/lib/utils";
 import { navItems } from "@/lib/constants";
 import { Wrench } from "lucide-react";
 
-export function Sidebar() {
+export function SidebarContent() {
     const pathname = usePathname();
 
     return (
-        <div className="flex h-screen w-64 flex-col border-r bg-card text-card-foreground">
+        <div className="flex h-full flex-col bg-card text-card-foreground">
             <div className="flex h-16 items-center border-b px-6">
                 <Link href="/" className="flex items-center gap-2 font-bold text-primary">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -54,6 +54,14 @@ export function Sidebar() {
                     <p className="mt-1 text-sm text-foreground">Need help? contact engineering team</p>
                 </div>
             </div>
+        </div>
+    );
+}
+
+export function Sidebar() {
+    return (
+        <div className="hidden border-r md:flex h-screen w-64 flex-col">
+            <SidebarContent />
         </div>
     );
 }
