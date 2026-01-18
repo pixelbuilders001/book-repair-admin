@@ -20,6 +20,7 @@ import {
     ExternalLink,
     ShieldCheck
 } from "lucide-react";
+import { verifyTechnician } from "@/app/technicians/actions";
 
 interface TechVerificationProps {
     tech: Technician | null;
@@ -35,7 +36,7 @@ export function TechVerification({ tech, isOpen, onClose }: TechVerificationProp
 
     if (!tech) return null;
 
-    import { verifyTechnician } from "@/app/technicians/actions";
+
 
     // ... inside component
     // PATCH API call for verification
