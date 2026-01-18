@@ -158,7 +158,7 @@ export default function BookingsPage() {
                                                     {booking.issue?.icon_url && (
                                                         <img
                                                             src={booking.issue.icon_url}
-                                                            alt={booking.issue.title}
+                                                            alt={booking.issue.name}
                                                             className="w-10 h-10 rounded-md object-cover"
                                                         />
                                                     )}

@@ -29,9 +29,10 @@ export interface DatabaseBooking {
     final_amount_to_be_paid: string | null;
     payment_method: string | null;
     wallet_used_amount: number | null;
+    preferred_service_date: string | null;
     issue?: {
         name: string;
-        image_url: string;
+        icon_url: string;
     };
     category?: {
         name: string;
