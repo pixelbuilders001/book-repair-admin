@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FixIt Admin - Repair Booking Platform",
+  title: "HELLOFIXO Admin - Repair Booking Platform",
   description: "Admin panel for technician repair booking platform",
 };
 

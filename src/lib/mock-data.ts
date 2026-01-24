@@ -264,7 +264,7 @@ export const walletTransactions = [
 
 export const referrals = [
     {
-        code: "FIXIT100",
+        code: "HELLOFIXO100",
         owner: "9876543210",
         ownerName: "Amit Sharma",
         usageCount: 12,

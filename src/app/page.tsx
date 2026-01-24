@@ -1,9 +1,6 @@
 "use client";
-import {
-  dashboardStats,
-  bookingData,
-  recentBookings
-} from "@/lib/mock-data";
+
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -24,9 +21,10 @@ import {
 } from "recharts";
 import {
   TrendingUp,
-  TrendingDown,
   ArrowRight,
-  MoreVertical
+  MoreVertical,
+  Loader2,
+  Database
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,30 +36,58 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import { getDashboardData } from "./actions/dashboard";
+import Link from "next/link";
 
 export default function DashboardPage() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const result = await getDashboardData();
+        setData(result);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
-        <p className="text-muted-foreground">
-          Welcome back, Rajeev. Here&apos;s what&apos;s happening with FixIt today.
-        </p>
+    <div className="space-y-8 pb-10">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+          <p className="text-muted-foreground">
+            Welcome back. Here&apos;s what&apos;s happening with HELLOFIXO today.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+          Refresh Data
+        </Button>
       </div>
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {dashboardStats.map((stat) => (
+        {data?.stats.map((stat: any) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 {stat.title}
               </CardTitle>
-              {stat.trend === "up" ? (
-                <TrendingUp className="h-4 w-4 text-emerald-500" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-rose-500" />
-              )}
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
@@ -71,6 +97,27 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Registry Counts Section */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <Database className="h-5 w-5" /> Entity Overview
+        </h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          {data?.registryCounts.map((item: any) => (
+            <Link href={item.href} key={item.title}>
+              <Card className="hover:bg-muted/50 transition-colors cursor-pointer border-dashed">
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-sm text-muted-foreground font-medium uppercase tracking-wider">{item.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="text-2xl font-bold">{item.count}</div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
@@ -85,7 +132,7 @@ export default function DashboardPage() {
           <CardContent className="pl-2">
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={bookingData}>
+                <LineChart data={data?.chartData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                   <XAxis
                     dataKey="name"
@@ -123,13 +170,13 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Booking Volume</CardTitle>
             <CardDescription>
-              Daily completed jobs.
+              Daily created jobs.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={bookingData}>
+                <BarChart data={data?.chartData}>
                   <XAxis
                     dataKey="name"
                     stroke="#888888"
@@ -160,7 +207,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Bookings Table */}
-      {/* <Card>
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Recent Bookings</CardTitle>
@@ -168,9 +215,11 @@ export default function DashboardPage() {
               Latest job requests from customers.
             </CardDescription>
           </div>
-          <Button variant="outline" size="sm">
-            View All <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+          <Link href="/bookings">
+            <Button variant="outline" size="sm">
+              View All <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
         </CardHeader>
         <CardContent>
           <Table>
@@ -186,9 +235,9 @@ export default function DashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentBookings.map((booking) => (
+              {data?.recentBookings.map((booking: any) => (
                 <TableRow key={booking.id}>
-                  <TableCell className="font-medium">{booking.id}</TableCell>
+                  <TableCell className="font-medium text-xs">#{booking.id.slice(0, 8)}...</TableCell>
                   <TableCell>{booking.customer}</TableCell>
                   <TableCell>{booking.category}</TableCell>
                   <TableCell>
@@ -200,26 +249,33 @@ export default function DashboardPage() {
                   <TableCell>
                     <Badge
                       variant={
-                        booking.status === "Completed" ? "default" :
-                          booking.status === "Pending" ? "outline" :
-                            booking.status === "Cancelled" ? "destructive" :
+                        booking.status === "completed" ? "default" :
+                          booking.status === "pending" ? "outline" :
+                            booking.status === "cancelled" ? "destructive" :
                               "secondary"
                       }
+                      className="capitalize"
                     >
                       {booking.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
+                  <TableCell className="text-right text-muted-foreground text-xs">
+                    {booking.date}
                   </TableCell>
                 </TableRow>
               ))}
+              {data?.recentBookings.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    No recent bookings found.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
-      </Card> */}
+      </Card>
     </div>
   );
 }
+

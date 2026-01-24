@@ -10,13 +10,25 @@ export async function login(formData: FormData) {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
     })
 
     if (error) {
         return { error: error.message }
+    }
+
+    // Check if user has admin role
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single()
+
+    if (profileError || profile?.role !== 'admin') {
+        await supabase.auth.signOut()
+        return { error: "Access denied. Only administrators can login to this panel." }
     }
 
     revalidatePath('/', 'layout')

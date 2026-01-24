@@ -11,12 +11,13 @@ export function SidebarContent() {
 
     return (
         <div className="flex h-full flex-col bg-card text-card-foreground">
-            <div className="flex h-16 items-center border-b px-6">
+            <div className="flex h-16 items-center justify-left border-b">
                 <Link href="/" className="flex items-center gap-2 font-bold text-primary">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                        <Wrench className="h-5 w-5" />
-                    </div>
-                    <span className="text-xl tracking-tight">FixIt Admin</span>
+                    <img
+                        src="/logo.png"
+                        alt="HELLOFIXO Logo"
+                        className="h-40 w-auto object-contain"
+                    />
                 </Link>
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-6">

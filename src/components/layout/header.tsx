@@ -40,13 +40,13 @@ export function Header() {
             <SidebarContent />
           </SheetContent>
         </Sheet>
-        <div className="relative w-full max-w-sm md:max-w-md hidden md:block">
+        {/* <div className="relative w-full max-w-sm md:max-w-md hidden md:block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search bookings, technicians..."
             className="pl-10"
           />
-        </div>
+        </div> */}
       </div>
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" className="relative">
