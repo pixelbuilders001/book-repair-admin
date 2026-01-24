@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Profile } from "@/lib/types";
 import { useState, useEffect } from "react";
 import { updateProfile } from "@/app/profiles/actions";
+import { getTechnicians } from "@/app/technicians/actions";
 import { useToast } from "@/components/ui/use-toast";
 
 import {
@@ -35,16 +36,41 @@ export function ProfileVerification({ profile, isOpen, onClose }: ProfileVerific
     const { toast } = useToast();
     const [submitting, setSubmitting] = useState(false);
     const [phone, setPhone] = useState("");
+    const [fullName, setFullName] = useState("");
     const [isVerified, setIsVerified] = useState<string>("true");
     const [onboardingStatus, setOnboardingStatus] = useState<string>("approved");
+    const [technicians, setTechnicians] = useState<any[]>([]);
 
     useEffect(() => {
         if (profile) {
             setPhone(profile.phone || "");
+            setFullName(profile.full_name || "");
             setIsVerified(String(profile.is_verified));
             setOnboardingStatus(profile.onboarding_status || "approved");
         }
     }, [profile]);
+
+    useEffect(() => {
+        const fetchTechs = async () => {
+            try {
+                const data = await getTechnicians();
+                setTechnicians(data);
+
+                // Try to find matching technician by email to suggest name
+                if (profile && !profile.full_name) {
+                    const match = data.find((t: any) => t.email === profile.email);
+                    if (match) {
+                        setFullName(match.full_name);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch technicians:", error);
+            }
+        };
+        if (isOpen) {
+            fetchTechs();
+        }
+    }, [isOpen, profile]);
 
     if (!profile) return null;
 
@@ -54,7 +80,8 @@ export function ProfileVerification({ profile, isOpen, onClose }: ProfileVerific
             await updateProfile(profile.id, {
                 is_verified: isVerified === "true",
                 onboarding_status: onboardingStatus,
-                phone: phone
+                phone: phone,
+                full_name: fullName
             });
             toast({
                 title: "Success",
@@ -108,6 +135,37 @@ export function ProfileVerification({ profile, isOpen, onClose }: ProfileVerific
                                 <SelectItem value="rejected">Rejected</SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="fullname">Full Name</Label>
+                        <div className="flex gap-2">
+                            <Input
+                                id="fullname"
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                placeholder="Enter full name"
+                            />
+                            {technicians.length > 0 && (
+                                <Select onValueChange={setFullName}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Suggest from Techs" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {technicians
+                                            .filter(t => t.full_name)
+                                            .map((t: any) => (
+                                                <SelectItem key={t.id} value={t.full_name}>
+                                                    {t.full_name} ({t.email || 'No Email'})
+                                                </SelectItem>
+                                            ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Profile Email: {profile.email}
+                        </p>
                     </div>
 
                     <div className="space-y-2">

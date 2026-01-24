@@ -10,6 +10,7 @@ export interface DatabaseBooking {
     preferred_time_slot: string | null;
     status: string;
     media_url: string | null;
+    secondary_media_url: string | null;
     created_at: string;
     pincode: string;
     order_id: string | null;

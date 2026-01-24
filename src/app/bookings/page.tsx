@@ -113,6 +113,7 @@ export default function BookingsPage() {
                                         <TableHead className="min-w-[250px]">Issue / Category</TableHead>
                                         <TableHead>Preferred Time/Date slot</TableHead>
                                         <TableHead>Media</TableHead>
+                                        <TableHead>Secondary Media</TableHead>
                                         <TableHead>Created At</TableHead>
                                         {/* <TableHead>Pincode</TableHead> */}
                                         <TableHead>Order ID</TableHead>
@@ -174,6 +175,11 @@ export default function BookingsPage() {
                                                     <a href={booking.media_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>
                                                 ) : "-"}
                                             </TableCell>
+                                            <TableCell>
+                                                {booking.secondary_media_url ? (
+                                                    <a href={booking.secondary_media_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>
+                                                ) : "-"}
+                                            </TableCell>
                                             <TableCell>{formatDate(booking.created_at)}</TableCell>
                                             {/* <TableCell>{booking.pincode}</TableCell> */}
                                             <TableCell>{booking.order_id}</TableCell>
@@ -205,7 +211,7 @@ export default function BookingsPage() {
                                     ))}
                                     {bookings.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={28} className="h-24 text-center">
+                                            <TableCell colSpan={29} className="h-24 text-center">
                                                 No bookings found.
                                             </TableCell>
                                         </TableRow>
