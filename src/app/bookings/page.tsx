@@ -64,6 +64,13 @@ export default function BookingsPage() {
         return `₹${amount.toLocaleString('en-IN')}`;
     };
 
+    const formatStatus = (status: string) => {
+        return status
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    };
+
     const handleAssignClick = (bookingId: string) => {
         setSelectedBookingId(bookingId);
         setIsAssignModalOpen(true);
@@ -140,9 +147,9 @@ export default function BookingsPage() {
                                         <TableRow key={booking.id}>
                                             <TableCell className="pl-6 font-mono text-xs">{booking.id}</TableCell>
                                             <TableCell>{booking.user_name}</TableCell>
-                                            <TableCell>{booking.status}</TableCell>
+                                            <TableCell>{formatStatus(booking.status)}</TableCell>
                                             <TableCell>
-                                                {booking.status === 'pending' && (
+                                                {(booking.status === 'pending' || booking.status === 'job_rejected') && (
                                                     <Button size="sm" onClick={() => handleAssignClick(booking.id)}>
                                                         Assign Tech
                                                     </Button>
