@@ -9,22 +9,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AlertCircle, CheckCircle2, Loader2, ShieldCheck } from 'lucide-react'
 
 export default function LoginPage() {
-    const [loading, setLoading] = useState(false)
+    const [loginLoading, setLoginLoading] = useState(false)
+    const [signupLoading, setSignupLoading] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
     async function handleLogin(formData: FormData) {
-        setLoading(true)
+        setLoginLoading(true)
         setMessage(null)
 
         const res = await login(formData)
         if (res?.error) {
             setMessage({ type: 'error', text: res.error })
-            setLoading(false)
+            setLoginLoading(false)
         }
     }
 
     async function handleSignup(formData: FormData) {
-        setLoading(true)
+        setSignupLoading(true)
         setMessage(null)
 
         // Implicitly role is 'admin' via actions.ts default
@@ -34,7 +35,7 @@ export default function LoginPage() {
         } else if (res?.success) {
             setMessage({ type: 'success', text: res.message || "Account created! Please check your email to confirm." })
         }
-        setLoading(false)
+        setSignupLoading(false)
     }
 
     return (
@@ -53,11 +54,11 @@ export default function LoginPage() {
                     <form action={handleSignup} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
-                            <Input id="email" name="email" type="email" placeholder="admin@example.com" required disabled={loading} />
+                            <Input id="email" name="email" type="email" placeholder="admin@example.com" required disabled={loginLoading || signupLoading} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="password">Password</Label>
-                            <Input id="password" name="password" type="password" required disabled={loading} minLength={6} />
+                            <Input id="password" name="password" type="password" required disabled={loginLoading || signupLoading} minLength={6} />
                         </div>
 
                         {message && (
@@ -68,9 +69,13 @@ export default function LoginPage() {
                         )}
 
                         <div className="space-y-3 pt-2">
-                            <Button type="submit" className="w-full" disabled={loading}>
-                                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                Create Admin Account
+                            <Button
+                                type="submit"
+                                formAction={handleLogin}
+                                className="w-full"
+                                disabled={loginLoading || signupLoading}>
+                                {loginLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                Sign In
                             </Button>
                             <div className="relative">
                                 <div className="absolute inset-0 flex items-center">
@@ -82,18 +87,15 @@ export default function LoginPage() {
                                     </span>
                                 </div>
                             </div>
-                            <Button
-                                type="submit"
-                                formAction={handleLogin}
-                                variant="outline"
-                                className="w-full"
-                                disabled={loading}>
-                                Sign In
+                            <Button type="submit" variant="outline" className="w-full" disabled={loginLoading || signupLoading}>
+                                {signupLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                Create Admin Account
                             </Button>
+
                         </div>
                     </form>
                 </CardContent>
             </Card>
-        </div>
+        </div >
     )
 }
