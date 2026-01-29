@@ -21,6 +21,7 @@ import {
 interface TechnicianStat {
     id: string;
     technician_id: string;
+    full_name: string;
     total_jobs_completed: number;
     total_jobs_assigned: number;
     total_jobs_cancelled: number;
@@ -90,6 +91,8 @@ export default function TechnicianStatsPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="pl-6">ID</TableHead>
+                                        <TableHead className="pl-6">Full Name</TableHead>
+
                                         <TableHead>Technician ID</TableHead>
                                         <TableHead>Total Jobs Completed</TableHead>
                                         <TableHead>Total Jobs Assigned</TableHead>
@@ -108,6 +111,7 @@ export default function TechnicianStatsPage() {
                                     {stats.map((stat) => (
                                         <TableRow key={stat.id}>
                                             <TableCell className="pl-6 font-mono text-xs">{stat.id}</TableCell>
+                                            <TableCell>{stat?.full_name ? stat.full_name : "-"}</TableCell>
                                             <TableCell>{stat.technician_id}</TableCell>
                                             <TableCell>{stat.total_jobs_completed}</TableCell>
                                             <TableCell>{stat.total_jobs_assigned}</TableCell>

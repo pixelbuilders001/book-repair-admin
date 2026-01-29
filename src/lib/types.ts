@@ -31,6 +31,7 @@ export interface DatabaseBooking {
     payment_method: string | null;
     wallet_used_amount: number | null;
     preferred_service_date: string | null;
+    user_id: string; // Add this line
     issue?: {
         name: string;
         icon_url: string;

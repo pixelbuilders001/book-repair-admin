@@ -60,3 +60,23 @@ export async function updateProfile(id: string, updates: Partial<Profile>) {
 
     return { success: true }
 }
+
+export async function getProfile(id: string) {
+    const supabase = await createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error('Unauthorized')
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${id}&select=*`, {
+        headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+        }
+    })
+
+    if (!response.ok) {
+        throw new Error('Failed to fetch profile')
+    }
+
+    const data = await response.json()
+    return data[0] as Profile
+}

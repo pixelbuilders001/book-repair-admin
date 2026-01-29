@@ -25,12 +25,16 @@ import {
 } from "lucide-react";
 
 import { AssignTechnicianModal } from "@/components/bookings/AssignTechnicianModal";
+import { UserInfoModal } from "@/components/bookings/UserInfoModal";
+import { Info } from "lucide-react";
 
 export default function BookingsPage() {
     const [bookings, setBookings] = useState<DatabaseBooking[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [isUserInfoModalOpen, setIsUserInfoModalOpen] = useState(false);
+    const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     console.log(bookings);
 
     useEffect(() => {
@@ -76,6 +80,11 @@ export default function BookingsPage() {
         setIsAssignModalOpen(true);
     };
 
+    const handleUserInfoClick = (userId: string) => {
+        setSelectedUserId(userId);
+        setIsUserInfoModalOpen(true);
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -111,6 +120,7 @@ export default function BookingsPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="pl-6">ID</TableHead>
+                                        <TableHead>User Info</TableHead>
                                         <TableHead>User Name</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead>Action</TableHead>
@@ -146,6 +156,11 @@ export default function BookingsPage() {
                                     {bookings.map((booking) => (
                                         <TableRow key={booking.id}>
                                             <TableCell className="pl-6 font-mono text-xs">{booking.id}</TableCell>
+                                            <TableCell>
+                                                <Button variant="ghost" size="icon" onClick={() => handleUserInfoClick(booking.user_id)}>
+                                                    <Info className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
                                             <TableCell>{booking.user_name}</TableCell>
                                             <TableCell>{formatStatus(booking.status)}</TableCell>
                                             <TableCell>
@@ -247,6 +262,12 @@ export default function BookingsPage() {
                     }}
                 />
             )}
+
+            <UserInfoModal
+                isOpen={isUserInfoModalOpen}
+                onClose={() => setIsUserInfoModalOpen(false)}
+                userId={selectedUserId}
+            />
         </div>
     );
 }
