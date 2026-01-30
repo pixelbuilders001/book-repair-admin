@@ -11,14 +11,15 @@ export function SidebarContent() {
 
     return (
         <div className="flex h-full flex-col bg-card text-card-foreground">
-            <div className="flex h-16 items-center justify-left border-b">
-                <Link href="/" className="flex items-center gap-2 font-bold text-primary">
+            <div className="flex h-16 items-center justify-center border-b">
+                <Link href="/" className="flex items-center  font-bold text-primary">
                     <img
                         src="/logo.png"
                         alt="HELLOFIXO Logo"
-                        className="h-40 w-auto object-contain"
+                        className="h-10 w-auto object-contain"
                     />
                 </Link>
+
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-6">
                 <nav className="space-y-1">

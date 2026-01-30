@@ -79,12 +79,7 @@ export default function WalletsPage() {
                 </div>
             </div>
             <Card>
-                <CardHeader>
-                    <CardTitle>Wallets</CardTitle>
-                    <CardDescription>
-                        All user wallets and balances.
-                    </CardDescription>
-                </CardHeader>
+
                 <CardContent className="p-0">
                     {loading ? (
                         <div className="flex items-center justify-center h-32">Loading...</div>

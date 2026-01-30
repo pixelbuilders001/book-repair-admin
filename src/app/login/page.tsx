@@ -42,10 +42,12 @@ export default function LoginPage() {
         <div className="flex h-screen w-full items-center justify-center bg-gray-50 px-4">
             <Card className="w-full max-w-md shadow-lg">
                 <CardHeader className="text-center space-y-1">
-                    <div className="flex justify-center mb-2">
-                        <div className="bg-primary/10 p-3 rounded-full">
-                            <ShieldCheck className="h-8 w-8 text-primary" />
-                        </div>
+                    <div className="flex justify-center mb-6">
+                        <img
+                            src="/logo.png"
+                            alt="HELLOFIXO Logo"
+                            className="h-32 w-auto object-contain"
+                        />
                     </div>
                     <CardTitle className="text-2xl font-bold">Admin Access</CardTitle>
                     <CardDescription>Enter your credentials to access the dashboard.</CardDescription>
