@@ -53,12 +53,12 @@ export function ProfileVerification({ profile, isOpen, onClose }: ProfileVerific
     useEffect(() => {
         const fetchTechs = async () => {
             try {
-                const data = await getTechnicians();
-                setTechnicians(data);
+                const { data: techs } = await getTechnicians(1, 100);
+                setTechnicians(techs || []);
 
                 // Try to find matching technician by email to suggest name
                 if (profile && !profile.full_name) {
-                    const match = data.find((t: any) => t.email === profile.email);
+                    const match = (techs || []).find((t: any) => t.email === profile.email);
                     if (match) {
                         setFullName(match.full_name);
                     }
