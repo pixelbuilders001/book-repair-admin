@@ -4,23 +4,22 @@ import { createClient } from '@/lib/supabase/server'
 import { Profile } from '@/lib/types'
 import { revalidatePath } from 'next/cache'
 
-export async function getProfiles() {
+export async function getProfiles(page: number = 1, pageSize: number = 10) {
     const supabase = await createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error('Unauthorized')
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) throw new Error('Unauthorized')
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles`, {
-        headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'apikey': `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
-        }
-    })
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
 
-    if (!response.ok) {
-        throw new Error('Failed to fetch profiles')
-    }
+    const { data, error, count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to)
 
-    return await response.json() as Profile[]
+    if (error) throw new Error(error.message)
+    return { data: data as Profile[], totalCount: count || 0 }
 }
 
 export async function updateProfile(id: string, updates: Partial<Profile>) {

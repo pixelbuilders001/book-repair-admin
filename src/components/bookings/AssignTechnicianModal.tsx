@@ -14,10 +14,11 @@ interface AssignTechnicianModalProps {
     isOpen: boolean;
     onClose: () => void;
     bookingId: string;
+    bookingPincode: string;
     onSuccess: () => void;
 }
 
-export function AssignTechnicianModal({ isOpen, onClose, bookingId, onSuccess }: AssignTechnicianModalProps) {
+export function AssignTechnicianModal({ isOpen, onClose, bookingId, bookingPincode, onSuccess }: AssignTechnicianModalProps) {
     const [technicians, setTechnicians] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -36,9 +37,10 @@ export function AssignTechnicianModal({ isOpen, onClose, bookingId, onSuccess }:
 
     async function fetchTechnicians() {
         setLoading(true);
-        const { data, error } = await getTechnicians();
+        const { data, error } = await getTechnicians(bookingPincode);
         if (error) {
             toast({ variant: "destructive", title: "Error", description: error });
+            setTechnicians([]);
         } else {
             setTechnicians(data || []);
         }
@@ -85,11 +87,17 @@ export function AssignTechnicianModal({ isOpen, onClose, bookingId, onSuccess }:
                                     <SelectValue placeholder="Select technician" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {technicians.filter((tech) => tech.is_verified && tech.is_active).map((tech) => (
-                                        <SelectItem key={tech.id} value={tech.id}>
-                                            {tech.full_name || "Unknown"} ({tech.service_area || "No Service Area"}) {tech.pincode || "No Pincode"}
+                                    {technicians.length > 0 ? (
+                                        technicians.filter((tech) => tech.is_verified && tech.is_active).map((tech) => (
+                                            <SelectItem key={tech.id} value={tech.id}>
+                                                {tech.full_name || "Unknown"} ({tech.service_area || "No Service Area"}) {tech.pincode || "No Pincode"}
+                                            </SelectItem>
+                                        ))
+                                    ) : (
+                                        <SelectItem value="none" disabled>
+                                            No technicians available for pincode {bookingPincode}
                                         </SelectItem>
-                                    ))}
+                                    )}
                                 </SelectContent>
                             </Select>
                         )}

@@ -73,21 +73,26 @@ export default function TechniciansPage() {
     const [submitting, setSubmitting] = useState(false);
     const remarkInputRef = useRef<HTMLInputElement>(null);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const pageSize = 10;
+
+    const fetchTechs = async () => {
+        try {
+            setLoading(true);
+            const { data, totalCount } = await getTechnicians(currentPage, pageSize);
+            setTechnicians(data || []);
+            setTotalCount(totalCount || 0);
+        } catch (error) {
+            console.error('Error fetching technicians:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        async function fetchTechs() {
-            try {
-                setLoading(true);
-                const data = await getTechnicians();
-                setTechnicians(data);
-            } catch (error) {
-                console.error('Error fetching technicians:', error);
-            } finally {
-                setLoading(false);
-            }
-        }
         fetchTechs();
-    }, []);
+    }, [currentPage]);
 
     return (
         <div className="space-y-6">
@@ -205,6 +210,32 @@ export default function TechniciansPage() {
                         </Table>
                     </div>
                 </CardContent>
+                <div className="flex items-center justify-between border-t p-4">
+                    <p className="text-sm text-muted-foreground">
+                        Showing {technicians.length} of {totalCount} technicians
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1 || loading}
+                        >
+                            Previous
+                        </Button>
+                        <span className="text-sm font-medium">
+                            Page {currentPage} of {Math.ceil(totalCount / pageSize)}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => prev + 1)}
+                            disabled={currentPage * pageSize >= totalCount || loading}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
             </Card>
             {/* Image Modal */}
             <Dialog open={!!imageModal} onOpenChange={() => setImageModal(null)}>
@@ -248,8 +279,7 @@ export default function TechniciansPage() {
                                         description: "Technician verification processed successfully"
                                     });
                                     // Refresh the list
-                                    const data = await getTechnicians();
-                                    setTechnicians(data);
+                                    await fetchTechs();
                                     setVerifyModal(null);
                                 } catch (error: any) {
                                     toast({

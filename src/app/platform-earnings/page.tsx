@@ -10,6 +10,7 @@ import {
     CardTitle,
     CardDescription
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
     Table,
     TableBody,
@@ -50,22 +51,27 @@ function formatDate(dateString?: string | null) {
 export default function PlatformEarningsPage() {
     const [earnings, setEarnings] = useState<PlatformEarning[]>([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const pageSize = 10;
 
     // ... inside component
     useEffect(() => {
         async function fetchEarnings() {
             setLoading(true);
             try {
-                const data = await getPlatformEarnings();
-                setEarnings(data);
+                const { data, totalCount } = await getPlatformEarnings(currentPage, pageSize);
+                setEarnings(data || []);
+                setTotalCount(totalCount || 0);
             } catch {
                 setEarnings([]);
+                setTotalCount(0);
             } finally {
                 setLoading(false);
             }
         }
         fetchEarnings();
-    }, []);
+    }, [currentPage]);
 
     return (
         <div className="space-y-6">
@@ -83,49 +89,77 @@ export default function PlatformEarningsPage() {
                     {loading ? (
                         <div className="flex items-center justify-center h-32">Loading...</div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="pl-6">ID</TableHead>
-                                        <TableHead>Booking ID</TableHead>
-                                        <TableHead>Technician ID</TableHead>
-                                        <TableHead>Earning Type</TableHead>
-                                        <TableHead>Gross Amount</TableHead>
-                                        <TableHead>Commission Amount</TableHead>
-                                        <TableHead>Technician Amount</TableHead>
-                                        <TableHead>Commission %</TableHead>
-                                        <TableHead>Payment Method</TableHead>
-                                        <TableHead>Payment Status</TableHead>
-                                        <TableHead>Created At</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {earnings.map((row) => (
-                                        <TableRow key={row.id}>
-                                            <TableCell className="pl-6 font-mono text-xs">{row.id}</TableCell>
-                                            <TableCell>{row.booking_id}</TableCell>
-                                            <TableCell>{row.technician_id}</TableCell>
-                                            <TableCell>{row.earning_type}</TableCell>
-                                            <TableCell>₹{Number(row.gross_amount).toFixed(2)}</TableCell>
-                                            <TableCell>₹{Number(row.commission_amount).toFixed(2)}</TableCell>
-                                            <TableCell>₹{Number(row.technician_amount).toFixed(2)}</TableCell>
-                                            <TableCell>{Number(row.commission_percentage).toFixed(2)}%</TableCell>
-                                            <TableCell>{row.payment_method || "-"}</TableCell>
-                                            <TableCell>{row.payment_status || "-"}</TableCell>
-                                            <TableCell>{formatDate(row.created_at)}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {earnings.length === 0 && (
+                        <>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={11} className="h-24 text-center">
-                                                No platform earnings found.
-                                            </TableCell>
+                                            <TableHead className="pl-6">ID</TableHead>
+                                            <TableHead>Booking ID</TableHead>
+                                            <TableHead>Technician ID</TableHead>
+                                            <TableHead>Earning Type</TableHead>
+                                            <TableHead>Gross Amount</TableHead>
+                                            <TableHead>Commission Amount</TableHead>
+                                            <TableHead>Technician Amount</TableHead>
+                                            <TableHead>Commission %</TableHead>
+                                            <TableHead>Payment Method</TableHead>
+                                            <TableHead>Payment Status</TableHead>
+                                            <TableHead>Created At</TableHead>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {earnings.map((row) => (
+                                            <TableRow key={row.id}>
+                                                <TableCell className="pl-6 font-mono text-xs">{row.id}</TableCell>
+                                                <TableCell>{row.booking_id}</TableCell>
+                                                <TableCell>{row.technician_id}</TableCell>
+                                                <TableCell>{row.earning_type}</TableCell>
+                                                <TableCell>₹{Number(row.gross_amount).toFixed(2)}</TableCell>
+                                                <TableCell>₹{Number(row.commission_amount).toFixed(2)}</TableCell>
+                                                <TableCell>₹{Number(row.technician_amount).toFixed(2)}</TableCell>
+                                                <TableCell>{Number(row.commission_percentage).toFixed(2)}%</TableCell>
+                                                <TableCell>{row.payment_method || "-"}</TableCell>
+                                                <TableCell>{row.payment_status || "-"}</TableCell>
+                                                <TableCell>{formatDate(row.created_at)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {earnings.length === 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={11} className="h-24 text-center">
+                                                    No platform earnings found.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            <div className="flex items-center justify-between border-t p-4">
+                                <p className="text-sm text-muted-foreground">
+                                    Showing {earnings.length} of {totalCount} records
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1 || loading}
+                                    >
+                                        Previous
+                                    </Button>
+                                    <span className="text-sm font-medium">
+                                        Page {currentPage} of {Math.ceil(totalCount / pageSize)}
+                                    </span>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => prev + 1)}
+                                        disabled={currentPage * pageSize >= totalCount || loading}
+                                    >
+                                        Next
+                                    </Button>
+                                </div>
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>

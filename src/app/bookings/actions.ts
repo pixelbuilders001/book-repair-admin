@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { DatabaseBooking } from '@/lib/types'
 
-export async function getBookings(): Promise<{ data?: DatabaseBooking[], error?: string }> {
+export async function getBookings(page: number = 1, pageSize: number = 10): Promise<{ data?: DatabaseBooking[], error?: string, totalCount?: number }> {
     const supabase = await createClient()
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -11,17 +11,21 @@ export async function getBookings(): Promise<{ data?: DatabaseBooking[], error?:
         return { error: 'Unauthorized' }
     }
 
-    const { data: bookings, error } = await supabase
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+
+    const { data: bookings, error, count } = await supabase
         .from('booking')
-        .select('*')
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
+        .range(from, to)
 
     if (error) {
         return { error: error.message }
     }
 
     if (!bookings || bookings.length === 0) {
-        return { data: [] }
+        return { data: [], totalCount: count || 0 }
     }
 
     // Extract unique IDs to minimize data fetching
@@ -59,24 +63,26 @@ export async function getBookings(): Promise<{ data?: DatabaseBooking[], error?:
     })
     console.log(enrichedBookings)
 
-    return { data: enrichedBookings }
+    return { data: enrichedBookings, totalCount: count || 0 }
 }
 
-export async function getTechnicians() {
+export async function getTechnicians(pincode?: string) {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) throw new Error('Unauthorized')
 
-    // User specified endpoint suggests table is 'technicians'
-    const { data, error } = await supabase
+    let query = supabase
         .from('technicians')
         .select('*')
 
+    if (pincode) {
+        query = query.eq('pincode', pincode)
+    }
+
+    const { data, error } = await query
+
     if (error) {
-        return { error: error.message } // This signature might conflict if caller expects just data wrapper. 
-        // Existing return was { data }.  Wait, previously it returned { data: ..., error: ... } potentially?
-        // Checked code: returned { data } or { error }.
-        // The calling code destructures response. 
+        return { error: error.message }
     }
 
     return { data }

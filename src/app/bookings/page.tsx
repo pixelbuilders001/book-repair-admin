@@ -32,22 +32,27 @@ export default function BookingsPage() {
     const [bookings, setBookings] = useState<DatabaseBooking[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+    const [selectedBookingPincode, setSelectedBookingPincode] = useState<string | null>(null);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [isUserInfoModalOpen, setIsUserInfoModalOpen] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const pageSize = 10;
     console.log(bookings);
 
     useEffect(() => {
         fetchBookings();
-    }, []);
+    }, [currentPage]);
 
     async function fetchBookings() {
         try {
             setLoading(true);
-            const { data, error } = await getBookings();
+            const { data, error, totalCount } = await getBookings(currentPage, pageSize);
 
             if (error) throw new Error(error);
             setBookings(data || []);
+            setTotalCount(totalCount || 0);
         } catch (error) {
             console.error('Error fetching bookings:', error);
         } finally {
@@ -75,8 +80,9 @@ export default function BookingsPage() {
             .join(' ');
     };
 
-    const handleAssignClick = (bookingId: string) => {
+    const handleAssignClick = (bookingId: string, pincode: string) => {
         setSelectedBookingId(bookingId);
+        setSelectedBookingPincode(pincode);
         setIsAssignModalOpen(true);
     };
 
@@ -98,7 +104,10 @@ export default function BookingsPage() {
                     {/* <Button variant="outline" onClick={() => logout()}>
                         <LogOut className="mr-2 h-4 w-4" /> Logout
                     </Button> */}
-                    <Button variant="outline" onClick={fetchBookings}>
+                    <Button variant="outline" onClick={() => {
+                        setCurrentPage(1);
+                        fetchBookings();
+                    }}>
                         Refresh
                     </Button>
                     {/* <Button variant="outline">
@@ -165,7 +174,7 @@ export default function BookingsPage() {
                                             <TableCell>{formatStatus(booking.status)}</TableCell>
                                             <TableCell>
                                                 {(booking.status === 'pending' || booking.status === 'job_rejected') && (
-                                                    <Button size="sm" onClick={() => handleAssignClick(booking.id)}>
+                                                    <Button size="sm" onClick={() => handleAssignClick(booking.id, booking.pincode)}>
                                                         Assign Tech
                                                     </Button>
                                                 )}
@@ -245,10 +254,31 @@ export default function BookingsPage() {
                 </CardContent>
             </Card>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between border-t p-4">
                 <p className="text-sm text-muted-foreground">
-                    Showing {bookings.length} bookings
+                    Showing {bookings.length} of {totalCount} bookings
                 </p>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1 || loading}
+                    >
+                        Previous
+                    </Button>
+                    <span className="text-sm font-medium">
+                        Page {currentPage} of {Math.ceil(totalCount / pageSize)}
+                    </span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => prev + 1)}
+                        disabled={currentPage * pageSize >= totalCount || loading}
+                    >
+                        Next
+                    </Button>
+                </div>
             </div>
 
             {selectedBookingId && (
@@ -256,6 +286,7 @@ export default function BookingsPage() {
                     isOpen={isAssignModalOpen}
                     onClose={() => setIsAssignModalOpen(false)}
                     bookingId={selectedBookingId}
+                    bookingPincode={selectedBookingPincode || ""}
                     onSuccess={() => {
                         fetchBookings();
                         setIsAssignModalOpen(false);

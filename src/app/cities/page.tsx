@@ -53,6 +53,9 @@ export default function CitiesPage() {
     });
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const pageSize = 4;
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
@@ -67,8 +70,9 @@ export default function CitiesPage() {
         async function fetchData() {
             try {
                 setLoading(true);
-                const data = await getCities();
-                setCities(data);
+                const { data, totalCount } = await getCities(currentPage, pageSize);
+                setCities(data || []);
+                setTotalCount(totalCount || 0);
             } catch {
                 setError("Failed to fetch cities");
             } finally {
@@ -76,7 +80,7 @@ export default function CitiesPage() {
             }
         }
         fetchData();
-    }, []);
+    }, [currentPage]);
 
     const handleAddCity = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -195,6 +199,32 @@ export default function CitiesPage() {
                         </TableBody>
                     </Table>
                 </CardContent>
+                <div className="flex items-center justify-between border-t p-4">
+                    <p className="text-sm text-muted-foreground">
+                        Showing {cities.length} of {totalCount} cities
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1 || loading}
+                        >
+                            Previous
+                        </Button>
+                        <span className="text-sm font-medium">
+                            Page {currentPage} of {Math.ceil(totalCount / pageSize)}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => prev + 1)}
+                            disabled={currentPage * pageSize >= totalCount || loading}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
             </Card>
         </div>
     );

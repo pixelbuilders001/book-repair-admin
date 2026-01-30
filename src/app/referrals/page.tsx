@@ -45,22 +45,27 @@ interface ReferralBooking {
 export default function ReferralsPage() {
     const [referralBookings, setReferralBookings] = useState<ReferralBooking[]>([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const pageSize = 10;
 
     // ... inside component
     useEffect(() => {
         async function fetchReferralBookings() {
             setLoading(true);
             try {
-                const data = await getReferralBookings();
-                setReferralBookings(data);
+                const { data, totalCount } = await getReferralBookings(currentPage, pageSize);
+                setReferralBookings(data || []);
+                setTotalCount(totalCount || 0);
             } catch {
                 setReferralBookings([]);
+                setTotalCount(0);
             } finally {
                 setLoading(false);
             }
         }
         fetchReferralBookings();
-    }, []);
+    }, [currentPage]);
 
     function formatDate(dateString?: string | null) {
         if (!dateString) return "-";
@@ -127,45 +132,73 @@ export default function ReferralsPage() {
                     {loading ? (
                         <div className="flex items-center justify-center h-32">Loading...</div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="pl-6">ID</TableHead>
-                                        <TableHead>Referrer Mobile</TableHead>
-                                        <TableHead>Referee Mobile</TableHead>
-                                        <TableHead>Referee Booking ID</TableHead>
-                                        <TableHead>Reward Amount</TableHead>
-                                        <TableHead>Reward Status</TableHead>
-                                        <TableHead>Created At</TableHead>
-                                        <TableHead>Earned At</TableHead>
-                                        <TableHead>Used At</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {referralBookings.map((ref) => (
-                                        <TableRow key={ref.id}>
-                                            <TableCell className="pl-6 font-mono text-xs">{ref.id}</TableCell>
-                                            <TableCell>{ref.referrer_mobile}</TableCell>
-                                            <TableCell>{ref.referee_mobile}</TableCell>
-                                            <TableCell className="font-mono text-xs">{ref.referee_booking_id}</TableCell>
-                                            <TableCell>₹{ref.reward_amount ?? 0}</TableCell>
-                                            <TableCell>{ref.reward_status ?? "pending"}</TableCell>
-                                            <TableCell>{formatDate(ref.created_at)}</TableCell>
-                                            <TableCell>{formatDate(ref.earned_at)}</TableCell>
-                                            <TableCell>{formatDate(ref.used_at)}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {referralBookings.length === 0 && (
+                        <>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={9} className="h-24 text-center">
-                                                No referral bookings found.
-                                            </TableCell>
+                                            <TableHead className="pl-6">ID</TableHead>
+                                            <TableHead>Referrer Mobile</TableHead>
+                                            <TableHead>Referee Mobile</TableHead>
+                                            <TableHead>Referee Booking ID</TableHead>
+                                            <TableHead>Reward Amount</TableHead>
+                                            <TableHead>Reward Status</TableHead>
+                                            <TableHead>Created At</TableHead>
+                                            <TableHead>Earned At</TableHead>
+                                            <TableHead>Used At</TableHead>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {referralBookings.map((ref) => (
+                                            <TableRow key={ref.id}>
+                                                <TableCell className="pl-6 font-mono text-xs">{ref.id}</TableCell>
+                                                <TableCell>{ref.referrer_mobile}</TableCell>
+                                                <TableCell>{ref.referee_mobile}</TableCell>
+                                                <TableCell className="font-mono text-xs">{ref.referee_booking_id}</TableCell>
+                                                <TableCell>₹{ref.reward_amount ?? 0}</TableCell>
+                                                <TableCell>{ref.reward_status ?? "pending"}</TableCell>
+                                                <TableCell>{formatDate(ref.created_at)}</TableCell>
+                                                <TableCell>{formatDate(ref.earned_at)}</TableCell>
+                                                <TableCell>{formatDate(ref.used_at)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {referralBookings.length === 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={9} className="h-24 text-center">
+                                                    No referral bookings found.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            <div className="flex items-center justify-between border-t p-4">
+                                <p className="text-sm text-muted-foreground">
+                                    Showing {referralBookings.length} of {totalCount} records
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1 || loading}
+                                    >
+                                        Previous
+                                    </Button>
+                                    <span className="text-sm font-medium">
+                                        Page {currentPage} of {Math.ceil(totalCount / pageSize)}
+                                    </span>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => prev + 1)}
+                                        disabled={currentPage * pageSize >= totalCount || loading}
+                                    >
+                                        Next
+                                    </Button>
+                                </div>
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>

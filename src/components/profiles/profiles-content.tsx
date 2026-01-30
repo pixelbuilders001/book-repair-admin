@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Profile } from "@/lib/types";
 import {
     Card,
@@ -22,25 +22,39 @@ import { getProfiles } from "@/app/profiles/actions";
 
 interface ProfilesContentProps {
     initialProfiles: Profile[];
+    initialTotalCount: number;
 }
 
-export function ProfilesContent({ initialProfiles }: ProfilesContentProps) {
+export function ProfilesContent({ initialProfiles, initialTotalCount }: ProfilesContentProps) {
     const [profiles, setProfiles] = useState<Profile[]>(initialProfiles);
     const [loading, setLoading] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(initialTotalCount);
+    const pageSize = 10;
 
     const refreshProfiles = async () => {
         try {
             setLoading(true);
-            const data = await getProfiles();
-            setProfiles(data);
+            const { data, totalCount } = await getProfiles(currentPage, pageSize);
+            setProfiles(data || []);
+            setTotalCount(totalCount || 0);
         } catch (error) {
             console.error('Error refreshing profiles:', error);
         } finally {
             setLoading(false);
         }
     };
+    const hasMounted = useRef(false);
+
+    useEffect(() => {
+        if (!hasMounted.current) {
+            hasMounted.current = true;
+            return;
+        }
+        refreshProfiles();
+    }, [currentPage]);
 
     const handleVerifyClick = (profile: Profile) => {
         setSelectedProfile(profile);
@@ -165,6 +179,32 @@ export function ProfilesContent({ initialProfiles }: ProfilesContentProps) {
                         </Table>
                     </div>
                 </CardContent>
+                <div className="flex items-center justify-between border-t p-4">
+                    <p className="text-sm text-muted-foreground">
+                        Showing {profiles.length} of {totalCount} profiles
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1 || loading}
+                        >
+                            Previous
+                        </Button>
+                        <span className="text-sm font-medium">
+                            Page {currentPage} of {Math.ceil(totalCount / pageSize)}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => prev + 1)}
+                            disabled={currentPage * pageSize >= totalCount || loading}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
             </Card>
 
             <ProfileVerification
